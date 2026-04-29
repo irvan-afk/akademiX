@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:akademiX/core/models/user_model.dart';
 import 'package:akademiX/core/constants/app_enums.dart';
 import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
 import 'package:akademiX/features/auth/model/auth_usecase.dart';
