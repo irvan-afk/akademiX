@@ -1,4 +1,4 @@
-import '../../../core/constants/app_enums.dart';
+import '../../../../core/constants/app_enums.dart';
 import 'soal_model.dart'; // Import model relasinya
 
 class UjianModel {
