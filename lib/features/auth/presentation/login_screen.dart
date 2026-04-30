@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 import 'package:akademiX/core/constants/app_enums.dart';
-import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
-import 'package:akademiX/features/auth/model/auth_usecase.dart';
-import 'package:provider/provider.dart';
 import 'package:akademiX/core/constants/routes.dart';
-import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
