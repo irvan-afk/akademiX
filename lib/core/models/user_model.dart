@@ -14,22 +14,16 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final String roleRaw = json['role']?.toString() ?? '';
+
     return UserModel(
       id: json['id'],
       role: UserRole.values.firstWhere(
-        (e) => e.name.toUpperCase() == json['role'].toString().toUpperCase(),
+        (e) => e.name.toLowerCase() == roleRaw.toLowerCase(),
+        orElse: () => UserRole.mahasiswa,
       ),
-      username: json['username'],
+      username: json['username'] ?? '',
       deviceId: json['device_id'],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'role': role.name.toUpperCase(),
-      'username': username,
-      'device_id': deviceId,
-    };
   }
 }

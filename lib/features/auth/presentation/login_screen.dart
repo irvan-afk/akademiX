@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 import 'package:akademiX/core/constants/app_enums.dart';
-import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
-import 'package:akademiX/features/auth/model/auth_usecase.dart';
-
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,9 +14,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _rememberMe = false;
   bool _obscurePassword = true;
-  bool _isLoading = false;
+  bool _rememberMe = false;
 
   @override
   void dispose() {
@@ -29,53 +27,48 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _onLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    final usecase = AuthUsecase(AuthRepositoryImpl());
-    final result = await usecase.login(
+    final authVM = context.read<AuthViewModel>();
+    final success = await authVM.loginProcess(
       _usernameController.text.trim(),
       _passwordController.text.trim(),
     );
 
-    setState(() => _isLoading = false);
-
     if (!mounted) return;
 
-    if (!result.isSuccess) {
+    if (success) {
+      // KUNCI: Tutup LoginScreen agar RoleGuard yang ada di main.dart muncul
+      // atau gunakan Navigator.pushReplacement ke Home jika RoleGuard tidak otomatis
+      Navigator.of(context).pop();
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(result.errorMessage!),
+          content: Text(authVM.errorMessage ?? 'Login Gagal'),
           backgroundColor: Colors.redAccent,
         ),
       );
-      return;
-    }
-
-    switch (result.user!.role) {
-      case UserRole.mahasiswa:
-        Navigator.pushReplacementNamed(context, '/mahasiswa/home');
-        break;
-      case UserRole.dosen:
-        Navigator.pushReplacementNamed(context, '/dosen/home');
-        break;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = context.watch<AuthViewModel>().isLoading;
+
     return Scaffold(
       backgroundColor: const Color(0xFF2962FF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2962FF),
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        // KUNCINYA DI SINI: Menghilangkan tombol back otomatis
+        automaticallyImplyLeading: false,
         title: const Text(
           'Login',
-          style: TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
         ),
+        centerTitle: true,
       ),
       body: Column(
         children: [
@@ -84,16 +77,11 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-                child: Form(
-                  key: _formKey,
-                  child: _buildForm(),
-                ),
+                child: Form(key: _formKey, child: _buildForm(isLoading)),
               ),
             ),
           ),
@@ -129,20 +117,16 @@ class _LoginScreenState extends State<LoginScreen> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 4),
           const Text(
             'E-Exam & Offline Submission',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 13,
-            ),
+            style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isLoading) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -157,45 +141,30 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 8),
         const Text(
           'Silahkan masuk untuk\nmemulai ujian',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey,
-            height: 1.5,
-          ),
+          style: TextStyle(fontSize: 14, color: Colors.grey, height: 1.5),
         ),
         const SizedBox(height: 28),
 
         // NIP/NIM Field
         const Text(
           'NIP/NIM',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF444444),
-          ),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: _usernameController,
-          keyboardType: TextInputType.text,
           decoration: _inputDecoration('Masukkan NIP/NIM'),
-          validator: (val) {
-            if (val == null || val.trim().isEmpty) {
-              return 'NIP/NIM wajib diisi';
-            }
-            return null;
-          },
+          validator: (val) => (val == null || val.trim().isEmpty)
+              ? 'NIP/NIM wajib diisi'
+              : null,
         ),
+
         const SizedBox(height: 16),
 
         // Password Field
         const Text(
           'Kata Sandi',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: Color(0xFF444444),
-          ),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
         TextFormField(
@@ -212,19 +181,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
-          validator: (val) {
-            if (val == null || val.trim().isEmpty) {
-              return 'Kata sandi wajib diisi';
-            }
-            if (val.length < 6) {
-              return 'Kata sandi minimal 6 karakter';
-            }
-            return null;
-          },
+          validator: (val) => (val == null || val.length < 6)
+              ? 'Kata sandi minimal 6 karakter'
+              : null,
         ),
+
         const SizedBox(height: 12),
 
-        // Remember me & Lupa Kata Sandi
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -234,7 +197,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   value: _rememberMe,
                   onChanged: (val) => setState(() => _rememberMe = val!),
                   activeColor: const Color(0xFF2962FF),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 const Text(
                   'Remember me',
@@ -243,36 +205,30 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
             ),
             TextButton(
-              onPressed: () {
-                // TODO: navigasi ke forgot password
-              },
+              onPressed: () {},
               child: const Text(
                 'Lupa Kata Sandi?',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF2962FF),
-                ),
+                style: TextStyle(fontSize: 13, color: Color(0xFF2962FF)),
               ),
             ),
           ],
         ),
+
         const SizedBox(height: 28),
 
-        // Tombol Login
         SizedBox(
           width: double.infinity,
           height: 52,
           child: ElevatedButton(
-            onPressed: _isLoading ? null : _onLogin,
+            onPressed: isLoading ? null : _onLogin,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2962FF),
-              disabledBackgroundColor: const Color(0xFF2962FF).withOpacity(0.6),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
               ),
               elevation: 0,
             ),
-            child: _isLoading
+            child: isLoading
                 ? const SizedBox(
                     width: 22,
                     height: 22,
@@ -298,30 +254,20 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 14,
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      filled: true,
+      fillColor: const Color(0xFFF8FAFC),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 0.5),
+        borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFDDDDDD), width: 0.5),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2962FF), width: 1),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 0.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+        borderSide: const BorderSide(color: Color(0xFF2962FF), width: 1.5),
       ),
     );
   }

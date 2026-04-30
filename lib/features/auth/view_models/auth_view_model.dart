@@ -1,49 +1,60 @@
-import 'package:flutter/material.dart'; // Digunakan untuk ChangeNotifier dan debugPrint
-import 'package:akademiX/core/models/user_model.dart'; // Sesuaikan dengan letak UserModel kamu
-import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
+import 'package:flutter/material.dart';
+import 'package:akademiX/core/models/user_model.dart';
+import 'package:akademiX/features/auth/model/auth_usecase.dart';
 
 class AuthViewModel extends ChangeNotifier {
-  final AuthRepositoryImpl _authRepo = AuthRepositoryImpl();
-  
+  final AuthUsecase _authUsecase;
+
+  AuthViewModel(this._authUsecase);
+
   UserModel? _currentUser;
-  Map<String, dynamic>? _userData; // Menyimpan detail Mahasiswa/Dosen
+  Map<String, dynamic>? _userData;
   bool _isLoading = false;
+  String? _errorMessage;
 
-  // Getter untuk digunakan di UI
   bool get isLoading => _isLoading;
-  Map<String, dynamic>? get userData => _userData;
   UserModel? get currentUser => _currentUser;
+  Map<String, dynamic>? get userData => _userData;
+  String? get errorMessage => _errorMessage;
 
-  /// Fungsi Login
-  /// Mengembalikan [bool] agar UI tahu kapan harus pindah halaman (navigasi)
   Future<bool> loginProcess(String username, String password) async {
     _isLoading = true;
-    notifyListeners(); 
+    _errorMessage = null;
+    notifyListeners();
 
     try {
-      // Langkah 1: Login untuk dapatkan data User dasar
-      final user = await _authRepo.login(username, password);
+      final result = await _authUsecase.login(username, password);
 
-      if (user != null) {
-        _currentUser = user;
-        
-        // Langkah 2: Ambil detail (Mahasiswa/Dosen) berdasarkan role
-        _userData = await _authRepo.getUserDetail(user);
-        
-        return true; // Login Berhasil
+      // --- DEBUGGING AREA ---
+      print("--- HASIL LOGIN SUPABASE ---");
+      print("Login Sukses: ${result.isSuccess}");
+      if (result.isSuccess) {
+        print("Role Terdeteksi: ${result.user?.role}");
+        print("Username: ${result.user?.username}");
       } else {
-        return false; // Login Gagal (User tidak ditemukan)
+        print("Error Message: ${result.errorMessage}");
+      }
+      // -----------------------
+
+      if (result.isSuccess) {
+        _currentUser = result.user;
+        _userData = result.detail;
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = result.errorMessage;
+        return false;
       }
     } catch (e) {
-      debugPrint("Error login: $e");
+      print("Exception Error: $e"); // Debug jika ada crash
+      _errorMessage = "Terjadi kesalahan sistem: $e";
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners(); 
+      notifyListeners();
     }
   }
 
-  /// Fungsi Logout untuk membersihkan sesi di memori
   void logout() {
     _currentUser = null;
     _userData = null;
