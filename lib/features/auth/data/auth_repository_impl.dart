@@ -1,7 +1,6 @@
 import 'package:akademiX/core/constants/supabase_constants.dart';
 import 'package:akademiX/core/models/user_model.dart';
 import 'package:akademiX/core/constants/app_enums.dart';
-import 'dart:developer'; // Untuk log yang lebih rapi
 import 'package:flutter/foundation.dart'; // Untuk debugPrint
 
 class AuthRepositoryImpl {
@@ -26,19 +25,24 @@ class AuthRepositoryImpl {
   // Get User Detail
   Future<Map<String, dynamic>?> getUserDetail(UserModel user) async {
     try {
-      debugPrint("DEBUG REPO FETCHING DETAIL FOR ID: ${user.id} WITH ROLE: ${user.role}");
 
-      if (user.role == UserRole.mahasiswa) {
-        final result = await supabase
+      switch (user.role) {
+        case (UserRole.mahasiswa):
+          final result = await supabase
             .from('MAHASISWA')
             .select('*, KELAS(nama, angkatan, PRODI(nama))')
             .eq('user_id', user.id)
             .single();
+          return result;
 
-        debugPrint("DEBUG REPO DETAIL MAHASISWA: $result"); // Lihat isi Map-nya
-        return result;
+        case (UserRole.dosen):
+          final result = await supabase
+            .from('DOSEN')
+            .select('*, JURUSAN(nama)')
+            .eq('user_id', user.id)
+            .single();
+          return result;
       }
-      // ... (Dosen sama juga)
     } catch (e) {
       debugPrint("DEBUG REPO DETAIL ERROR: $e"); 
       return null;
