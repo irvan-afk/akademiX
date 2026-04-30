@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 import 'package:akademiX/core/constants/app_enums.dart';
+import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
+import 'package:akademiX/features/auth/model/auth_usecase.dart';
+import 'package:provider/provider.dart';
+import 'package:akademiX/core/constants/routes.dart';
+import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -27,8 +32,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _onLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authVM = context.read<AuthViewModel>();
-    final success = await authVM.loginProcess(
+    // JANGAN panggil AuthUsecase di sini secara manual.
+    // Gunakan ViewModel yang sudah terhubung dengan Provider.
+    final authVm = context.read<AuthViewModel>();
+
+    // Jalankan login lewat ViewModel agar data tersimpan secara Global
+    final success = await authVm.loginProcess(
       _usernameController.text.trim(),
       _passwordController.text.trim(),
     );
@@ -36,13 +45,18 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      // KUNCI: Tutup LoginScreen agar RoleGuard yang ada di main.dart muncul
-      // atau gunakan Navigator.pushReplacement ke Home jika RoleGuard tidak otomatis
-      Navigator.of(context).pop();
+      // Ambil data role untuk navigasi
+      final role = authVm.currentUser?.role;
+
+      if (role == UserRole.mahasiswa) {
+        Navigator.pushReplacementNamed(context, Routes.mahasiswaHome);
+      } else if (role == UserRole.dosen) {
+        Navigator.pushReplacementNamed(context, Routes.dosenHome);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authVM.errorMessage ?? 'Login Gagal'),
+        const SnackBar(
+          content: Text('Login Gagal: Periksa NIP/NIM dan Kata Sandi'),
           backgroundColor: Colors.redAccent,
         ),
       );
