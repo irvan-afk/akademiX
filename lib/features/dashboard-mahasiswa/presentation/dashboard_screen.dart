@@ -1,10 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart'; // Wajib tambah ini
+import 'package:akademiX/features/auth/view_models/auth_view_model.dart'; // Import ViewModel
+import 'package:akademiX/core/constants/routes.dart'; // Gunakan Routes agar lebih rapi
 
 class DashboardMahasiswaScreen extends StatelessWidget {
   const DashboardMahasiswaScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // 1. Ambil data dari AuthViewModel menggunakan Provider
+    final authVm = context.watch<AuthViewModel>();
+    
+    // 2. Ambil nama dari Map userData (hasil query join di repository kamu)
+    final String namaMahasiswa = authVm.userData?['nama'] ?? "Mahasiswa";
+    final String nimMahasiswa = authVm.userData?['nim'] ?? "";
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -13,7 +23,7 @@ class DashboardMahasiswaScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 20),
-              // Header: Nama Mahasiswa
+              // Header: Nama Mahasiswa Dinamis
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -22,8 +32,12 @@ class DashboardMahasiswaScreen extends StatelessWidget {
                     children: [
                       Text("Hello,", 
                         style: TextStyle(color: Colors.blue.shade700, fontSize: 16)),
-                      const Text("Mahasiswa", 
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue)),
+                      Text(
+                        namaMahasiswa,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.blue),
+                      ),
+                      if (nimMahasiswa.isNotEmpty)
+                        Text(nimMahasiswa, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                     ],
                   ),
                   const CircleAvatar(
@@ -59,8 +73,8 @@ class DashboardMahasiswaScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () {
-                        // Navigasi ke Halaman Masukkan Kode
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const JoinUjianScreen()));
+                        // Navigasi menggunakan Routes yang sudah kita buat di main.dart
+                        Navigator.pushNamed(context, Routes.ujian);
                       },
                       icon: const Icon(Icons.vpn_key_outlined, size: 18),
                       label: const Text("Join Sekarang"),
@@ -84,14 +98,18 @@ class DashboardMahasiswaScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(Icons.home_outlined, "Beranda", true),
-            const SizedBox(width: 40), // Space for FAB
+            const SizedBox(width: 40), 
             _buildNavItem(Icons.access_time, "Riwayat", false),
             _buildNavItem(Icons.person_outline, "Profile", false),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () {
+          // Contoh Logout untuk tes sesi
+          // context.read<AuthViewModel>().logout();
+          // Navigator.pushReplacementNamed(context, Routes.login);
+        },
         backgroundColor: Colors.blueAccent,
         child: const Icon(Icons.add, color: Colors.white),
       ),

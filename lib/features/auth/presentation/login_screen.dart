@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:akademiX/core/constants/app_enums.dart';
 import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
 import 'package:akademiX/features/auth/model/auth_usecase.dart';
+import 'package:provider/provider.dart';
+import 'package:akademiX/core/constants/routes.dart';
+import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 
 
 class LoginScreen extends StatefulWidget {
@@ -27,39 +30,38 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _onLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+  // JANGAN panggil AuthUsecase di sini secara manual.
+  // Gunakan ViewModel yang sudah terhubung dengan Provider.
+  final authVm = context.read<AuthViewModel>();
 
-    final usecase = AuthUsecase(AuthRepositoryImpl());
-    final result = await usecase.login(
-      _usernameController.text.trim(),
-      _passwordController.text.trim(),
+  // Jalankan login lewat ViewModel agar data tersimpan secara Global
+  final success = await authVm.loginProcess(
+    _usernameController.text.trim(),
+    _passwordController.text.trim(),
+  );
+
+  if (!mounted) return;
+
+  if (success) {
+    // Ambil data role untuk navigasi
+    final role = authVm.currentUser?.role;
+
+    if (role == UserRole.mahasiswa) {
+      Navigator.pushReplacementNamed(context, Routes.mahasiswaHome);
+    } else if (role == UserRole.dosen) {
+      Navigator.pushReplacementNamed(context, Routes.dosenHome);
+    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Login Gagal: Periksa NIP/NIM dan Kata Sandi'),
+        backgroundColor: Colors.redAccent,
+      ),
     );
-
-    setState(() => _isLoading = false);
-
-    if (!mounted) return;
-
-    if (!result.isSuccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage!),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
-      return;
-    }
-
-    switch (result.user!.role) {
-      case UserRole.mahasiswa:
-        Navigator.pushReplacementNamed(context, '/mahasiswa/home');
-        break;
-      case UserRole.dosen:
-        Navigator.pushReplacementNamed(context, '/dosen/home');
-        break;
-    }
   }
+}
 
   @override
   Widget build(BuildContext context) {
