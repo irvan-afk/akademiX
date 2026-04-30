@@ -9,6 +9,9 @@ import 'package:akademiX/features/auth/model/auth_usecase.dart';
 import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 import 'package:akademiX/features/auth/presentation/role_guard.dart';
 
+// PASTIKAN IMPORT INI AKTIF (TIDAK MERAH)
+import 'package:akademiX/features/dashboard-mahasiswa/presentation/dashboard_screen.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -21,23 +24,18 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  // 3. Inisialisasi Hive untuk Penyimpanan Lokal (Offline)
+  // 3. Inisialisasi Hive
   await Hive.initFlutter();
-
-  // Membuka Box untuk Sesi/Pengaturan
   await Hive.openBox('settings');
-
-  // Membuka Box untuk Menyimpan Soal Ujian (Penting untuk Offline Submission)
   await Hive.openBox('offline_exams');
 
-  // 4. Inisialisasi Arsitektur (Dependency Injection Manual)
+  // 4. Inisialisasi Arsitektur
   final authRepo = AuthRepositoryImpl();
   final authUsecase = AuthUsecase(authRepo);
 
   runApp(
     MultiProvider(
       providers: [
-        // Menyuntikkan Usecase ke dalam ViewModel sesuai prinsip SRP
         ChangeNotifierProvider(create: (_) => AuthViewModel(authUsecase)),
       ],
       child: const MyApp(),
@@ -53,13 +51,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AkademiX',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        useMaterial3:
-            true, // Mengaktifkan Material 3 agar tampilan lebih modern
-      ),
-      // RoleGuard akan mengecek apakah ada user yang sudah login di memori
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      // RoleGuard sebagai pintu masuk otomatis (Auto-login)
       home: const RoleGuard(),
+
+      routes: {
+        '/mahasiswa/home': (context) => const DashboardMahasiswaScreen(),
+        // Tambahkan rute lain jika ada di sini
+      },
     );
   }
 }
