@@ -8,9 +8,12 @@ import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
 import 'package:akademiX/features/auth/model/auth_usecase.dart';
 import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 import 'package:akademiX/features/auth/presentation/role_guard.dart';
+import 'package:akademiX/features/auth/presentation/login_screen.dart';
 
 import 'package:akademiX/features/dashboard-mahasiswa/presentation/dashboard_screen.dart';
 import 'package:akademiX/features/dashboard-dosen/presentation/dashboard_dosen_screen.dart';
+
+import 'package:akademiX/features/ujian/view_models/ujian_view_model.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +40,7 @@ Future<void> main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthViewModel(authUsecase)),
+        ChangeNotifierProvider(create: (_) => UjianViewModel()),
       ],
       child: const MyApp(),
     ),
@@ -56,6 +60,7 @@ class MyApp extends StatelessWidget {
       home: const RoleGuard(),
 
       routes: {
+        '/login': (context) => const LoginScreen(),
         '/mahasiswa/home': (context) => const DashboardMahasiswaScreen(),
         '/dosen/home': (context) => const DashboardDosenScreen(),
         // Tambahkan rute lain jika ada di sini

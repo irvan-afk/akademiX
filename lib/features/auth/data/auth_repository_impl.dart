@@ -26,7 +26,9 @@ class AuthRepositoryImpl {
   // Get User Detail
   Future<Map<String, dynamic>?> getUserDetail(UserModel user) async {
     try {
-      debugPrint("DEBUG REPO FETCHING DETAIL FOR ID: ${user.id} WITH ROLE: ${user.role}");
+      debugPrint(
+        "DEBUG REPO FETCHING DETAIL FOR ID: ${user.id} WITH ROLE: ${user.role}",
+      );
 
       if (user.role == UserRole.mahasiswa) {
         final result = await supabase
@@ -37,10 +39,18 @@ class AuthRepositoryImpl {
 
         debugPrint("DEBUG REPO DETAIL MAHASISWA: $result"); // Lihat isi Map-nya
         return result;
+      } else if (user.role == UserRole.dosen) {
+        final result = await supabase
+            .from('DOSEN')
+            .select('*, JURUSAN(nama)')
+            .eq('user_id', user.id)
+            .single();
+
+        debugPrint("DEBUG REPO DETAIL DOSEN: $result"); // Lihat isi Map-nya
+        return result;
       }
-      // ... (Dosen sama juga)
     } catch (e) {
-      debugPrint("DEBUG REPO DETAIL ERROR: $e"); 
+      debugPrint("DEBUG REPO DETAIL ERROR: $e");
       return null;
     }
   }

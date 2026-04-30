@@ -9,9 +9,10 @@ class UjianModel {
   final DateTime waktuSelesai;
   final int durasiMenit;
   final UjianStatus statusUjian;
-  
+  final String? kodeUjian; // Tambahkan ini[cite: 4]
+  final String? kodePengawasan;
   // Relasi (Opsional, tergantung apakah API mengembalikan data ini sekaligus)
-  final List<SoalModel>? daftarSoal; 
+  final List<SoalModel>? daftarSoal;
 
   UjianModel({
     required this.id,
@@ -21,6 +22,8 @@ class UjianModel {
     required this.waktuSelesai,
     required this.durasiMenit,
     required this.statusUjian,
+    this.kodeUjian, // Tambahkan ini[cite: 4]
+    this.kodePengawasan,
     this.daftarSoal,
   });
 
@@ -29,16 +32,18 @@ class UjianModel {
       id: json['id'],
       pengampuId: json['pengampu_id'],
       judulUjian: json['judul_ujian'],
-      // Parse string tanggal dari database menjadi DateTime Dart
       waktuMulai: DateTime.parse(json['waktu_mulai']),
       waktuSelesai: DateTime.parse(json['waktu_selesai']),
       durasiMenit: json['durasi_menit'],
       statusUjian: UjianStatus.values.firstWhere(
-          (e) => e.name.toUpperCase() == json['status_ujian'].toString().toUpperCase()),
-      
-      // Mapping relasi array JSON ke List of Objects
-      daftarSoal: json['soal'] != null 
-          ? (json['soal'] as List).map((i) => SoalModel.fromJson(i)).toList() 
+        (e) =>
+            e.name.toUpperCase() ==
+            json['status_ujian'].toString().toUpperCase(),
+      ),
+      kodeUjian: json['kode_ujian'], // Mapping dari DB[cite: 4]
+      kodePengawasan: json['kode_pengawasan'], // Mapping dari DB[cite: 4]
+      daftarSoal: json['soal'] != null
+          ? (json['soal'] as List).map((i) => SoalModel.fromJson(i)).toList()
           : null,
     );
   }

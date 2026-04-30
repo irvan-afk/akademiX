@@ -1,9 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
+import 'package:akademiX/features/auth/presentation/profile_screen.dart';
+import 'package:akademiX/core/constants/routes.dart';
+import '../../ujian/presentation/publish_bank_soal_screen.dart';
+import '../../ujian/presentation/koreksi_jawaban_screen.dart' as koreksi;
 
-class DashboardDosenScreen extends StatelessWidget {
+class DashboardDosenScreen extends StatefulWidget {
   const DashboardDosenScreen({super.key});
+
+  @override
+  State<DashboardDosenScreen> createState() => _DashboardDosenScreenState();
+}
+
+class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
+  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +40,7 @@ class DashboardDosenScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     // Grid Menu
+                    // Grid Menu
                     GridView.count(
                       crossAxisCount: 2,
                       crossAxisSpacing: 20,
@@ -44,8 +56,22 @@ class DashboardDosenScreen extends StatelessWidget {
                         _buildMenuItem(
                           Icons.assignment_turned_in_outlined,
                           "Koreksi Essai",
+                          onTap: () => _showUjianSelector(context),
                         ),
-                        _buildMenuItem(Icons.language_outlined, "Publish"),
+                        // Update bagian Publish di bawah ini:
+                        _buildMenuItem(
+                          Icons.language_outlined,
+                          "Publish",
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PublishBankSoalScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                     const SizedBox(height: 30),
@@ -56,7 +82,7 @@ class DashboardDosenScreen extends StatelessWidget {
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(context),
       floatingActionButton: FloatingActionButton(
         onPressed: () {},
         backgroundColor: const Color(0xFF2962FF),
@@ -100,10 +126,28 @@ class DashboardDosenScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const CircleAvatar(
-                radius: 35,
-                backgroundColor: Color(0xFFFFA000),
-                child: Icon(Icons.face, size: 20, color: Colors.white),
+              Row(
+                children: [
+                  const CircleAvatar(
+                    radius: 35,
+                    backgroundColor: Color(0xFFFFA000),
+                    child: Icon(Icons.face, size: 20, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: () {
+                      final authVm = context.read<AuthViewModel>();
+                      authVm.logout();
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        Routes.login,
+                        (route) => false,
+                      );
+                    },
+                    tooltip: "Logout",
+                  ),
+                ],
               ),
             ],
           ),
@@ -166,46 +210,49 @@ class DashboardDosenScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String label) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE3F2FD),
-              borderRadius: BorderRadius.circular(15),
+  Widget _buildMenuItem(IconData icon, String label, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
-            child: Icon(icon, color: const Color(0xFF2962FF), size: 35),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Color(0xFF2962FF),
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(15),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE3F2FD),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Icon(icon, color: const Color(0xFF2962FF), size: 35),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF2962FF),
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(BuildContext context) {
     return BottomAppBar(
       notchMargin: 8,
       elevation: 8,
@@ -216,36 +263,61 @@ class DashboardDosenScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildNavIcon(Icons.home, "Beranda", true),
-            _buildNavIcon(Icons.calendar_today, "Jadwal", false),
+            _buildNavIcon(context, Icons.home, "Beranda", 0, () {}),
+            _buildNavIcon(context, Icons.calendar_today, "Jadwal", 1, () {}),
             const SizedBox(width: 40),
-            _buildNavIcon(Icons.history, "Riwayat", false),
-            _buildNavIcon(Icons.person, "Profile", false),
+            _buildNavIcon(context, Icons.history, "Riwayat", 2, () {}),
+            _buildNavIcon(context, Icons.person, "Profile", 3, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavIcon(IconData icon, String label, bool active) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: active ? const Color(0xFF2962FF) : Colors.grey[400],
-          size: 24,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
+  Widget _buildNavIcon(
+    BuildContext context,
+    IconData icon,
+    String label,
+    int index,
+    VoidCallback onTap,
+  ) {
+    bool active = _currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _currentIndex = index);
+        onTap();
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
             color: active ? const Color(0xFF2962FF) : Colors.grey[400],
-            fontSize: 11,
-            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            size: 24,
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: active ? const Color(0xFF2962FF) : Colors.grey[400],
+              fontSize: 11,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUjianSelector(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const koreksi.PilihUjianScreen()),
     );
   }
 }
