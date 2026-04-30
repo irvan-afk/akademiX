@@ -9,8 +9,8 @@ import 'package:akademiX/features/auth/model/auth_usecase.dart';
 import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 import 'package:akademiX/features/auth/presentation/role_guard.dart';
 
-// PASTIKAN IMPORT INI AKTIF (TIDAK MERAH)
 import 'package:akademiX/features/dashboard-mahasiswa/presentation/dashboard_screen.dart';
+import 'package:akademiX/features/dashboard-dosen/presentation/dashboard_dosen_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +57,7 @@ class MyApp extends StatelessWidget {
 
       routes: {
         '/mahasiswa/home': (context) => const DashboardMahasiswaScreen(),
+        '/dosen/home': (context) => const DashboardDosenScreen(),
         // Tambahkan rute lain jika ada di sini
       },
     );
