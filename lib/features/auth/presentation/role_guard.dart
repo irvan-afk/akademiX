@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
-import 'package:akademiX/features/onboarding/onboarding_view.dart';
-import 'package:akademiX/core/constants/app_enums.dart';
-
-// 1. IMPORT DASHBOARD DOSEN YANG BARU DIBUAT
-import 'package:akademiX/features/dashboard-dosen/presentation/dashboard_dosen_screen.dart';
-import 'package:akademiX/features/dashboard-mahasiswa/presentation/dashboard_screen.dart';
+import 'package:akademix/features/auth/view_models/auth_view_model.dart';
+import 'package:akademix/features/onboarding/onboarding_view.dart';
+import 'package:akademix/core/constants/app_enums.dart';
+import 'package:akademix/features/dashboard-dosen/presentation/dashboard_dosen_screen.dart';
+import 'package:akademix/features/dashboard-mahasiswa/presentation/dashboard_screen.dart';
 
 class RoleGuard extends StatelessWidget {
   const RoleGuard({super.key});
@@ -21,7 +19,7 @@ class RoleGuard extends StatelessWidget {
 
     final role = authVM.currentUser!.role;
 
-    // 2. LOGIKA NAVIGASI BERDASARKAN ROLE
+    //  LOGIKA NAVIGASI BERDASARKAN ROLE
     if (role == UserRole.mahasiswa) {
       return const DashboardMahasiswaScreen();
     } else if (role == UserRole.dosen) {

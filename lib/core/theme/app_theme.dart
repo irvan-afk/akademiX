@@ -1,18 +1,11 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // --- Konfigurasi Warna (Palet Soft Blue & Minimalist) ---
-  static const Color primaryColor = Color(
-    0xFF2962FF,
-  ); // Biru seperti di gambar referensi
+  static const Color primaryColor = Color(0xFF2962FF);
   static const Color primaryDark = Color(0xFF1565C0);
   static const Color primaryLight = Color(0xFFE3F2FD);
-  static const Color accentColor = Color(
-    0xFFFFAB00,
-  ); // Oranye untuk status 'Ragu-ragu'
-  static const Color successColor = Color(
-    0xFF4CAF50,
-  ); // Hijau untuk tombol 'Selesai'
+  static const Color accentColor = Color(0xFFFFAB00);
+  static const Color successColor = Color(0xFF4CAF50);
   static const Color warningColor = Color(0xFFFFC107);
   static const Color errorColor = Color(0xFFF44336);
   static const Color backgroundColor = Color(0xFFF8FAFF);
@@ -30,7 +23,6 @@ class AppTheme {
       ),
       scaffoldBackgroundColor: backgroundColor,
 
-      // Konfigurasi AppBar (Putih, Bersih, Tanpa Shadow)
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: textPrimary,
@@ -43,17 +35,15 @@ class AppTheme {
         ),
       ),
 
-      // FIX ERROR: Menggunakan CardThemeData, bukan CardTheme
       cardTheme: CardThemeData(
         color: cardColor,
-        elevation: 0, // Datar untuk kesan minimalist
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
           side: const BorderSide(color: borderColor),
         ),
       ),
 
-      // Konfigurasi Tombol Utama (Elegan & Rounded)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
@@ -67,7 +57,6 @@ class AppTheme {
         ),
       ),
 
-      // Konfigurasi Tombol Outlined (Untuk 'Ragu-ragu' atau 'Kembali')
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: textSecondary,
@@ -79,10 +68,9 @@ class AppTheme {
         ),
       ),
 
-      // Konfigurasi Input Field (Untuk Essay & Login)
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFFAFAFA), // Pengganti Colors.grey[50]
+        fillColor: const Color(0xFFFAFAFA),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 16,
@@ -112,7 +100,6 @@ class AppTheme {
     );
   }
 
-  // Utility untuk radius yang konsisten
   static BorderRadius get radiusSmall => BorderRadius.circular(8);
   static BorderRadius get radiusMedium => BorderRadius.circular(12);
   static BorderRadius get radiusLarge => BorderRadius.circular(20);

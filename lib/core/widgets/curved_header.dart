@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class CurvedHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
-  final Widget? trailing; // Untuk icon profile/logout di kanan
+  final Widget? trailing;
   final bool showBackButton;
 
   const CurvedHeader({
@@ -20,7 +20,7 @@ class CurvedHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 40, 24, 30),
       decoration: const BoxDecoration(
-        color: Color(0xFF2962FF), // Biru khas AkademiX
+        color: Color(0xFF2962FF),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(40),
           bottomRight: Radius.circular(40),

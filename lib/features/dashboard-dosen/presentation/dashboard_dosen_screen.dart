@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
-import 'package:akademiX/features/auth/presentation/profile_screen.dart';
-import 'package:akademiX/core/constants/routes.dart';
+import 'package:akademix/features/auth/view_models/auth_view_model.dart';
+import 'package:akademix/features/auth/presentation/profile_screen.dart';
+import 'package:akademix/core/constants/routes.dart';
 import '../../ujian/presentation/publish_bank_soal_screen.dart';
 import '../../ujian/presentation/publish_bank_soal_screen.dart';
 import '../../ujian/presentation/pilih_ujian_view.dart';
@@ -20,10 +20,10 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
 
   List<Widget> _buildPages(BuildContext context) {
     return [
-      _buildBerandaPage(context), // Index 0: Beranda
-      _buildJadwalPage(), // Index 1: Jadwal
-      _buildRiwayatPage(), // Index 2: Riwayat
-      const ProfileScreen(), // Index 3: Profile
+      _buildBerandaPage(context),
+      _buildJadwalPage(),
+      _buildRiwayatPage(),
+      const ProfileScreen(),
     ];
   }
 
@@ -33,10 +33,8 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
 
     return Column(
       children: [
-        // Header Statis
         _buildHeader(namaDosen),
 
-        // Konten Scrollable
         Expanded(
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -206,31 +204,40 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Hello,",
-                    style: TextStyle(color: Colors.white70, fontSize: 18),
-                  ),
-                  Text(
-                    nama,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Hello,",
+                      style: TextStyle(color: Colors.white70, fontSize: 18),
                     ),
-                  ),
-                ],
+                    Text(
+                      nama,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
               ),
+
+              const SizedBox(width: 12),
+
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircleAvatar(
                     radius: 35,
                     backgroundColor: Color(0xFFFFA000),
                     child: Icon(Icons.face, size: 20, color: Colors.white),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.logout, color: Colors.white),
                     onPressed: () {

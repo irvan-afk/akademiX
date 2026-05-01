@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/ujian_view_model.dart';
+// 1. Update import ke ViewModel Dosen
+import '../view_models/dosen_ujian_view_model.dart';
 import '../../../core/widgets/akademix_card.dart';
 
 class RekapNilaiView extends StatefulWidget {
@@ -22,14 +23,15 @@ class _RekapNilaiViewState extends State<RekapNilaiView> {
   @override
   void initState() {
     super.initState();
+
     Future.microtask(
-      () => context.read<UjianViewModel>().fetchRekapNilai(widget.ujianId),
+      () => context.read<DosenUjianViewModel>().fetchRekapNilai(widget.ujianId),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<UjianViewModel>();
+    final vm = context.watch<DosenUjianViewModel>();
     final filtered = vm.rekapNilai
         .where((m) => m['nama'].toLowerCase().contains(_query.toLowerCase()))
         .toList();
@@ -94,7 +96,7 @@ class _RekapNilaiViewState extends State<RekapNilaiView> {
       onChanged: (v) => setState(() => _query = v),
       decoration: InputDecoration(
         hintText: "Cari Nama Mahasiswa...",
-        prefixIcon: const Icon(Icons.search),
+        prefixIcon: const Icon(Icons.search, color: Color(0xFF2962FF)),
         filled: true,
         fillColor: const Color(0xFFF1F4FB),
         border: OutlineInputBorder(
@@ -150,17 +152,18 @@ class _RekapNilaiViewState extends State<RekapNilaiView> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
       child: AkademixCard(
-        // Hapus onTap agar tidak masuk ke halaman koreksi lagi
         child: Row(
           children: [
             CircleAvatar(
               radius: 25,
-              backgroundColor: const Color(0xFFEEEEEE),
+              backgroundColor: const Color(
+                0xFF2962FF,
+              ), // Navy untuk avatar[cite: 4]
               child: Text(
                 data['nama'][0],
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  color: Colors.white,
                 ),
               ),
             ),
@@ -209,7 +212,7 @@ class _RekapNilaiViewState extends State<RekapNilaiView> {
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2962FF),
+                    color: Color(0xFF2962FF), // Navy[cite: 4]
                   ),
                 ),
               ],

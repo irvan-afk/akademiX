@@ -1,5 +1,5 @@
 import '../../../../core/constants/app_enums.dart';
-import 'soal_model.dart'; // Import model relasinya
+import 'soal_model.dart';
 
 class UjianModel {
   final int id;
@@ -9,9 +9,8 @@ class UjianModel {
   final DateTime waktuSelesai;
   final int durasiMenit;
   final UjianStatus statusUjian;
-  final String? kodeUjian; // Tambahkan ini[cite: 4]
+  final String? kodeUjian;
   final String? kodePengawasan;
-  // Relasi (Opsional, tergantung apakah API mengembalikan data ini sekaligus)
   final List<SoalModel>? daftarSoal;
 
   UjianModel({
@@ -22,7 +21,7 @@ class UjianModel {
     required this.waktuSelesai,
     required this.durasiMenit,
     required this.statusUjian,
-    this.kodeUjian, // Tambahkan ini[cite: 4]
+    this.kodeUjian,
     this.kodePengawasan,
     this.daftarSoal,
   });
@@ -40,8 +39,8 @@ class UjianModel {
             e.name.toUpperCase() ==
             json['status_ujian'].toString().toUpperCase(),
       ),
-      kodeUjian: json['kode_ujian'], // Mapping dari DB[cite: 4]
-      kodePengawasan: json['kode_pengawasan'], // Mapping dari DB[cite: 4]
+      kodeUjian: json['kode_ujian'],
+      kodePengawasan: json['kode_pengawasan'],
       daftarSoal: json['soal'] != null
           ? (json['soal'] as List).map((i) => SoalModel.fromJson(i)).toList()
           : null,

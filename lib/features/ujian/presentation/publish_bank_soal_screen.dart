@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/ujian_view_model.dart';
+// 1. Update ke ViewModel Dosen
+import '../view_models/dosen_ujian_view_model.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../../../core/widgets/akademix_card.dart';
 
@@ -18,11 +19,11 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
   @override
   void initState() {
     super.initState();
-    // SRP: UI hanya memerintah ViewModel untuk ambil data sekali saja
+
     Future.microtask(() {
       final dosenId = context.read<AuthViewModel>().userData?['id'];
       if (dosenId != null) {
-        context.read<UjianViewModel>().fetchUjianForDosen(dosenId);
+        context.read<DosenUjianViewModel>().fetchUjianForDosen(dosenId);
       }
     });
   }
@@ -35,16 +36,14 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<UjianViewModel>();
+    final vm = context.watch<DosenUjianViewModel>();
 
-    // Logika Filter Pencarian di level UI (Sangat cepat karena data sudah ada di memori)
     final filteredUjian = vm.allUjianDosen.where((u) {
       return u.judulUjian.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
-      // APPBAR MINIMALIS (Gaya Mode Kerja)
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -73,6 +72,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
               onChanged: (val) => setState(() => _searchQuery = val),
               decoration: InputDecoration(
                 hintText: "Cari bank soal...",
+                // Menggunakan Navy untuk konsistensi[cite: 4]
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF2962FF)),
                 filled: true,
                 fillColor: const Color(0xFFF1F4FB),
@@ -156,7 +156,9 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
                                 onPressed: () =>
                                     _handlePublishAction(context, ujian),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF2962FF),
+                                  backgroundColor: const Color(
+                                    0xFF2962FF,
+                                  ), // Navy
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
                                   ),
@@ -219,21 +221,92 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
     );
   }
 
-  // --- LOGIKA AKSI TETAP RAPI ---
+  // --- LOGIKA AKSI MENGGUNAKAN DOSEN VIEW MODEL ---
   Future<void> _handlePublishAction(BuildContext context, dynamic ujian) async {
-    final tokens = await context.read<UjianViewModel>().publishUjian(ujian.id);
+    // Memanggil fungsi publish dari DosenUjianViewModel
+    final tokens = await context.read<DosenUjianViewModel>().publishUjian(
+      ujian.id,
+    );
     if (tokens != null && mounted) {
-      // Tampilkan popup sukses (gunakan fungsi popup Anda sebelumnya)
-      // Setelah popup ditutup, data otomatis refresh karena ViewModel memberitahu UI
+      _showSuccessPopup(
+        ujian.judulUjian,
+        tokens['ujian']!,
+        tokens['monitoring']!,
+      );
     }
+  }
+
+  void _showSuccessPopup(String judul, String tokenUjian, String tokenMonitor) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, color: Colors.green, size: 60),
+            const SizedBox(height: 15),
+            const Text(
+              "Berhasil Dipublish!",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            _buildTokenBox("KODE UJIAN", tokenUjian),
+            const SizedBox(height: 10),
+            _buildTokenBox("KODE MONITORING", tokenMonitor),
+            const SizedBox(height: 25),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2962FF),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  "Tutup",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTokenBox(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F4FB),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2962FF),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
 // import 'package:flutter/material.dart';
 // import 'package:provider/provider.dart';
-// import '../view_models/ujian_view_model.dart';
+// import '../view_models/dosen_ujian_view_model.dart';
 // import '../../auth/view_models/auth_view_model.dart';
-// import '../models/ujian_model.dart';
+// import '../../../core/widgets/akademix_card.dart';
 
 // class PublishBankSoalScreen extends StatefulWidget {
 //   const PublishBankSoalScreen({super.key});
@@ -243,374 +316,219 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
 // }
 
 // class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
-//   // Variabel untuk menyimpan future agar tidak reload setiap rebuild
-//   Future<List<UjianModel>>? _ujianFuture;
-//   int? _lastDosenId;
+//   final TextEditingController _searchController = TextEditingController();
+//   String _searchQuery = "";
 
-//   // Fungsi untuk inisialisasi ujian (DRAFT + PUBLISHED) berdasarkan ID Dosen
-//   void _initUjian(int dosenId) {
-//     if (_lastDosenId != dosenId) {
-//       _lastDosenId = dosenId;
-//       _ujianFuture = context.read<UjianViewModel>().fetchAllUjianForDosen(
-//         dosenId,
-//       );
-//     }
+//   @override
+//   void initState() {
+//     super.initState();
+//     // SRP: UI hanya memerintah ViewModel untuk ambil data sekali saja
+//     Future.microtask(() {
+//       final dosenId = context.read<AuthViewModel>().userData?['id'];
+//       if (dosenId != null) {
+//         context.read<UjianViewModel>().fetchUjianForDosen(dosenId);
+//       }
+//     });
 //   }
 
-//   // Fungsi untuk refresh manual (misal setelah publish sukses)
-//   void _refreshData() {
-//     if (_lastDosenId != null) {
-//       setState(() {
-//         _ujianFuture = context.read<UjianViewModel>().fetchAllUjianForDosen(
-//           _lastDosenId!,
-//         );
-//       });
-//     }
+//   @override
+//   void dispose() {
+//     _searchController.dispose();
+//     super.dispose();
 //   }
 
 //   @override
 //   Widget build(BuildContext context) {
-//     // Gunakan watch agar widget rebuild otomatis saat AuthViewModel update
-//     final authVM = context.watch<AuthViewModel>();
-//     final userData = authVM.userData;
+//     final vm = context.watch<UjianViewModel>();
 
-//     // 1. Validasi: Jika userData belum dimuat, tampilkan loading full screen
-//     if (userData == null || userData['id'] == null) {
-//       return const Scaffold(
-//         body: Center(
-//           child: Column(
-//             mainAxisAlignment: MainAxisAlignment.center,
-//             children: [
-//               CircularProgressIndicator(),
-//               SizedBox(height: 10),
-//               Text("Memuat data dosen..."),
-//             ],
-//           ),
-//         ),
-//       );
-//     }
-
-//     // 2. Ambil ID Dosen dan inisialisasi future jika belum ada
-//     final int dosenId = userData['id'];
-//     _initUjian(dosenId);
+//     // Logika Filter Pencarian di level UI (Sangat cepat karena data sudah ada di memori)
+//     final filteredUjian = vm.allUjianDosen.where((u) {
+//       return u.judulUjian.toLowerCase().contains(_searchQuery.toLowerCase());
+//     }).toList();
 
 //     return Scaffold(
 //       backgroundColor: const Color(0xFFF8FAFF),
+//       // APPBAR MINIMALIS (Gaya Mode Kerja)
 //       appBar: AppBar(
-//         title: const Text(
-//           "Kelola Ujian & Publish",
-//           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-//         ),
 //         backgroundColor: Colors.white,
 //         elevation: 0,
 //         leading: IconButton(
-//           icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+//           icon: const Icon(
+//             Icons.arrow_back_ios_new,
+//             color: Colors.black87,
+//             size: 20,
+//           ),
 //           onPressed: () => Navigator.pop(context),
 //         ),
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.all(20.0),
-//         child: Column(
-//           crossAxisAlignment: CrossAxisAlignment.start,
-//           children: [
-//             _buildSearchBar(),
-//             const SizedBox(height: 25),
-//             const Text(
-//               "DAFTAR UJIAN",
-//               style: TextStyle(
-//                 fontSize: 12,
-//                 fontWeight: FontWeight.bold,
-//                 color: Colors.grey,
-//                 letterSpacing: 1.2,
+//         title: const Text(
+//           "Publish Bank Soal",
+//           style: TextStyle(
+//             color: Colors.black87,
+//             fontWeight: FontWeight.bold,
+//             fontSize: 18,
+//           ),
+//         ),
+//         bottom: PreferredSize(
+//           preferredSize: const Size.fromHeight(70),
+//           child: Padding(
+//             padding: const EdgeInsets.fromLTRB(20, 0, 20, 15),
+//             child: TextField(
+//               controller: _searchController,
+//               onChanged: (val) => setState(() => _searchQuery = val),
+//               decoration: InputDecoration(
+//                 hintText: "Cari bank soal...",
+//                 prefixIcon: const Icon(Icons.search, color: Color(0xFF2962FF)),
+//                 filled: true,
+//                 fillColor: const Color(0xFFF1F4FB),
+//                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
+//                 border: OutlineInputBorder(
+//                   borderRadius: BorderRadius.circular(15),
+//                   borderSide: BorderSide.none,
+//                 ),
 //               ),
 //             ),
-//             const SizedBox(height: 15),
-//             Expanded(
-//               child: FutureBuilder<List<UjianModel>>(
-//                 future: _ujianFuture,
-//                 builder: (context, snapshot) {
-//                   if (snapshot.connectionState == ConnectionState.waiting) {
-//                     return const Center(child: CircularProgressIndicator());
-//                   }
+//           ),
+//         ),
+//       ),
+//       body: vm.isLoading
+//           ? const Center(child: CircularProgressIndicator())
+//           : filteredUjian.isEmpty
+//           ? _buildEmptyState()
+//           : ListView.builder(
+//               padding: const EdgeInsets.all(20),
+//               itemCount: filteredUjian.length,
+//               itemBuilder: (context, index) {
+//                 final ujian = filteredUjian[index];
+//                 final isDraft = ujian.statusUjian == 'DRAFT';
 
-//                   if (snapshot.hasError) {
-//                     return Center(
-//                       child: Text("Terjadi kesalahan: ${snapshot.error}"),
-//                     );
-//                   }
-
-//                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
-//                     return const Center(
-//                       child: Text("Tidak ada draft soal tersedia."),
-//                     );
-//                   }
-
-//                   final drafts = snapshot.data!;
-//                   return ListView.builder(
-//                     itemCount: drafts.length,
-//                     itemBuilder: (context, index) =>
-//                         _buildUjianCard(drafts[index]),
-//                   );
-//                 },
-//               ),
+//                 return Padding(
+//                   padding: const EdgeInsets.only(bottom: 15),
+//                   child: AkademixCard(
+//                     child: Column(
+//                       children: [
+//                         Row(
+//                           children: [
+//                             Container(
+//                               padding: const EdgeInsets.all(10),
+//                               decoration: BoxDecoration(
+//                                 color: isDraft
+//                                     ? Colors.orange[50]
+//                                     : Colors.green[50],
+//                                 borderRadius: BorderRadius.circular(12),
+//                               ),
+//                               child: Icon(
+//                                 isDraft
+//                                     ? Icons.edit_document
+//                                     : Icons.cloud_done,
+//                                 color: isDraft ? Colors.orange : Colors.green,
+//                               ),
+//                             ),
+//                             const SizedBox(width: 15),
+//                             Expanded(
+//                               child: Column(
+//                                 crossAxisAlignment: CrossAxisAlignment.start,
+//                                 children: [
+//                                   Text(
+//                                     ujian.judulUjian,
+//                                     style: const TextStyle(
+//                                       fontWeight: FontWeight.bold,
+//                                       fontSize: 16,
+//                                     ),
+//                                   ),
+//                                   Text(
+//                                     "${ujian.durasiMenit} Menit • Informatika",
+//                                     style: const TextStyle(
+//                                       color: Colors.grey,
+//                                       fontSize: 12,
+//                                     ),
+//                                   ),
+//                                 ],
+//                               ),
+//                             ),
+//                           ],
+//                         ),
+//                         const Divider(height: 30),
+//                         Row(
+//                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                           children: [
+//                             _buildBadge(
+//                               isDraft ? "DRAFT" : "PUBLISHED",
+//                               isDraft ? Colors.orange : Colors.green,
+//                             ),
+//                             if (isDraft)
+//                               ElevatedButton(
+//                                 onPressed: () =>
+//                                     _handlePublishAction(context, ujian),
+//                                 style: ElevatedButton.styleFrom(
+//                                   backgroundColor: const Color(0xFF2962FF),
+//                                   shape: RoundedRectangleBorder(
+//                                     borderRadius: BorderRadius.circular(10),
+//                                   ),
+//                                 ),
+//                                 child: const Text(
+//                                   "Publish Now",
+//                                   style: TextStyle(color: Colors.white),
+//                                 ),
+//                               )
+//                             else
+//                               const Text(
+//                                 "Terbit",
+//                                 style: TextStyle(
+//                                   color: Colors.green,
+//                                   fontWeight: FontWeight.bold,
+//                                 ),
+//                               ),
+//                           ],
+//                         ),
+//                       ],
+//                     ),
+//                   ),
+//                 );
+//               },
 //             ),
-//           ],
-//         ),
-//       ),
 //     );
 //   }
 
-//   // --- Widget Helpers Tetap Sama ---
-
-//   Widget _buildSearchBar() {
+//   Widget _buildBadge(String label, Color color) {
 //     return Container(
-//       padding: const EdgeInsets.symmetric(horizontal: 15),
+//       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
 //       decoration: BoxDecoration(
-//         color: const Color(0xFFEEEEEE),
-//         borderRadius: BorderRadius.circular(15),
-//       ),
-//       child: const TextField(
-//         decoration: InputDecoration(
-//           icon: Icon(Icons.search, color: Colors.grey),
-//           hintText: "Cari Bank Soal ...",
-//           border: InputBorder.none,
-//         ),
-//       ),
-//     );
-//   }
-
-//   Widget _buildUjianCard(UjianModel ujian) {
-//     return Container(
-//       margin: const EdgeInsets.only(bottom: 15),
-//       padding: const EdgeInsets.all(20),
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(20),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.05),
-//             blurRadius: 10,
-//             offset: const Offset(0, 5),
-//           ),
-//         ],
-//       ),
-//       child: Column(
-//         children: [
-//           Row(
-//             children: [
-//               Container(
-//                 padding: const EdgeInsets.all(10),
-//                 decoration: BoxDecoration(
-//                   color: Colors.grey[200],
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 child: const Icon(
-//                   Icons.cloud_upload_outlined,
-//                   color: Colors.grey,
-//                 ),
-//               ),
-//               const SizedBox(width: 15),
-//               Expanded(
-//                 child: Column(
-//                   crossAxisAlignment: CrossAxisAlignment.start,
-//                   children: [
-//                     Text(
-//                       ujian.judulUjian,
-//                       style: const TextStyle(
-//                         fontWeight: FontWeight.bold,
-//                         fontSize: 16,
-//                       ),
-//                     ),
-//                     const Text(
-//                       "TEKNIK INFORMATIKA",
-//                       style: TextStyle(color: Colors.grey, fontSize: 12),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//               _buildStatusBadge(ujian.statusUjian.toString().split('.').last),
-//             ],
-//           ),
-//           const SizedBox(height: 20),
-//           Row(
-//             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//             children: [
-//               Row(
-//                 children: [
-//                   const Icon(
-//                     Icons.description_outlined,
-//                     size: 16,
-//                     color: Colors.grey,
-//                   ),
-//                   const SizedBox(width: 5),
-//                   Text(
-//                     "${ujian.durasiMenit} Menit",
-//                     style: const TextStyle(color: Colors.grey, fontSize: 13),
-//                   ),
-//                 ],
-//               ),
-//               // Show button hanya jika DRAFT, jika PUBLISHED tampilkan badge
-//               ujian.statusUjian == 'DRAFT'
-//                   ? ElevatedButton(
-//                       onPressed: () => _handlePublish(ujian),
-//                       style: ElevatedButton.styleFrom(
-//                         backgroundColor: const Color(0xFF2962FF),
-//                         shape: RoundedRectangleBorder(
-//                           borderRadius: BorderRadius.circular(10),
-//                         ),
-//                       ),
-//                       child: const Text(
-//                         "Publish",
-//                         style: TextStyle(color: Colors.white),
-//                       ),
-//                     )
-//                   : Container(
-//                       padding: const EdgeInsets.symmetric(
-//                         horizontal: 16,
-//                         vertical: 8,
-//                       ),
-//                       decoration: BoxDecoration(
-//                         color: Colors.green[100],
-//                         borderRadius: BorderRadius.circular(10),
-//                       ),
-//                       child: Text(
-//                         "✓ Sudah Dipublis",
-//                         style: TextStyle(
-//                           color: Colors.green[700],
-//                           fontWeight: FontWeight.bold,
-//                         ),
-//                       ),
-//                     ),
-//             ],
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildStatusBadge(String status) {
-//     final isPublished = status == 'PUBLISHED' || status.contains('PUBLISHED');
-//     return Container(
-//       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-//       decoration: BoxDecoration(
-//         color: isPublished ? Colors.green[100] : Colors.orange[100],
-//         borderRadius: BorderRadius.circular(5),
+//         color: color.withOpacity(0.1),
+//         borderRadius: BorderRadius.circular(8),
 //       ),
 //       child: Text(
-//         isPublished ? 'PUBLISHED' : 'DRAFT',
+//         label,
 //         style: TextStyle(
+//           color: color,
 //           fontSize: 10,
 //           fontWeight: FontWeight.bold,
-//           color: isPublished ? Colors.green[700] : Colors.orange[700],
 //         ),
 //       ),
 //     );
 //   }
 
-//   Future<void> _handlePublish(UjianModel ujian) async {
-//     final tokens = await context.read<UjianViewModel>().publishUjian(ujian.id);
-//     if (tokens != null && mounted) {
-//       _showSuccessPopup(
-//         ujian.judulUjian,
-//         tokens['ujian']!,
-//         tokens['monitoring']!,
-//       );
-//     }
-//   }
-
-//   void _showSuccessPopup(String judul, String tokenUjian, String tokenMonitor) {
-//     showDialog(
-//       context: context,
-//       barrierDismissible: false,
-//       builder: (context) => AlertDialog(
-//         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             Align(
-//               alignment: Alignment.topLeft,
-//               child: IconButton(
-//                 icon: const Icon(Icons.close),
-//                 onPressed: () => Navigator.pop(context),
-//               ),
-//             ),
-//             const Icon(
-//               Icons.check_circle_outline,
-//               color: Colors.green,
-//               size: 80,
-//             ),
-//             const SizedBox(height: 15),
-//             const Text(
-//               "Berhasil Dipublish!",
-//               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-//             ),
-//             const SizedBox(height: 10),
-//             Text(
-//               "Ujian $judul sekarang aktif.",
-//               textAlign: TextAlign.center,
-//               style: const TextStyle(color: Colors.grey),
-//             ),
-//             const SizedBox(height: 25),
-//             _buildTokenDisplay("TOKEN UJIAN", tokenUjian),
-//             const SizedBox(height: 15),
-//             _buildTokenDisplay("TOKEN MONITORING", tokenMonitor),
-//             const SizedBox(height: 30),
-//             SizedBox(
-//               width: double.infinity,
-//               child: ElevatedButton.icon(
-//                 onPressed: () {},
-//                 icon: const Icon(Icons.copy, color: Colors.white),
-//                 label: const Text(
-//                   "Salin Kode",
-//                   style: TextStyle(color: Colors.white),
-//                 ),
-//                 style: ElevatedButton.styleFrom(
-//                   backgroundColor: const Color(0xFF2962FF),
-//                   padding: const EdgeInsets.symmetric(vertical: 15),
-//                   shape: RoundedRectangleBorder(
-//                     borderRadius: BorderRadius.circular(15),
-//                   ),
-//                 ),
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     ).then(
-//       (_) => _refreshData(),
-//     ); // Gunakan _refreshData setelah publish sukses
-//   }
-
-//   Widget _buildTokenDisplay(String label, String code) {
-//     return Container(
-//       width: double.infinity,
-//       padding: const EdgeInsets.all(15),
-//       decoration: BoxDecoration(
-//         border: Border.all(color: const Color(0xFF2962FF)),
-//         borderRadius: BorderRadius.circular(15),
-//       ),
+//   Widget _buildEmptyState() {
+//     return Center(
 //       child: Column(
+//         mainAxisAlignment: MainAxisAlignment.center,
 //         children: [
-//           Text(
-//             label,
-//             style: const TextStyle(
-//               fontSize: 10,
-//               fontWeight: FontWeight.bold,
-//               color: Colors.grey,
-//             ),
-//           ),
-//           const SizedBox(height: 5),
-//           Text(
-//             code,
-//             style: const TextStyle(
-//               fontSize: 28,
-//               fontWeight: FontWeight.bold,
-//               color: Color(0xFF2962FF),
-//               letterSpacing: 5,
-//             ),
+//           Icon(Icons.folder_open, size: 80, color: Colors.grey.shade300),
+//           const SizedBox(height: 16),
+//           const Text(
+//             "Tidak ada bank soal ditemukan",
+//             style: TextStyle(color: Colors.grey),
 //           ),
 //         ],
 //       ),
 //     );
+//   }
+
+//   // --- LOGIKA AKSI TETAP RAPI ---
+//   Future<void> _handlePublishAction(BuildContext context, dynamic ujian) async {
+//     final tokens = await context.read<UjianViewModel>().publishUjian(ujian.id);
+//     if (tokens != null && mounted) {
+//       // Tampilkan popup sukses (gunakan fungsi popup Anda sebelumnya)
+//       // Setelah popup ditutup, data otomatis refresh karena ViewModel memberitahu UI
+//     }
 //   }
 // }

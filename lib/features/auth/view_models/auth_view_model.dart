@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:akademiX/core/models/user_model.dart';
-import 'package:akademiX/features/auth/model/auth_usecase.dart';
+import 'package:akademix/core/models/user_model.dart';
+import 'package:akademix/features/auth/model/auth_usecase.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthUsecase _authUsecase;
@@ -17,6 +17,8 @@ class AuthViewModel extends ChangeNotifier {
   Map<String, dynamic>? get userData => _userData;
   String? get errorMessage => _errorMessage;
 
+  int? get mahasiswaId => _userData != null ? _userData!['id'] as int? : null;
+
   Future<bool> loginProcess(String username, String password) async {
     _isLoading = true;
     _errorMessage = null;
@@ -25,32 +27,28 @@ class AuthViewModel extends ChangeNotifier {
     try {
       final result = await _authUsecase.login(username, password);
 
-      // --- DEBUGGING LOG ---
+      // --- DEBUGGING AREA ---
       print("--- HASIL LOGIN SUPABASE ---");
       print("Login Sukses: ${result.isSuccess}");
+      if (result.isSuccess) {
+        print("Role Terdeteksi: ${result.user?.role}");
+        print("Username: ${result.user?.username}");
+      } else {
+        print("Error Message: ${result.errorMessage}");
+      }
 
       if (result.isSuccess) {
         _currentUser = result.user;
-
-        // KRUSIAL: Pastikan result.detail dari Usecase tidak kosong
         _userData = result.detail;
-
-        print("Role Terdeteksi: ${_currentUser?.role}");
-        print("Username: ${_currentUser?.username}");
-        // Jika ini masih null di log, cek query join di AuthRepository/Usecase kamu
-        print("Detail Data (Dosen ID): ${_userData?['id']}");
-
         notifyListeners();
         return true;
       } else {
         _errorMessage = result.errorMessage;
-        notifyListeners(); // Pastikan notify agar UI tahu ada error
         return false;
       }
     } catch (e) {
       print("Exception Error: $e");
       _errorMessage = "Terjadi kesalahan sistem: $e";
-      notifyListeners();
       return false;
     } finally {
       _isLoading = false;

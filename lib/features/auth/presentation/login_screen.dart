@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
-import 'package:akademiX/core/constants/app_enums.dart';
-import 'package:akademiX/core/constants/routes.dart';
+import 'package:akademix/features/auth/view_models/auth_view_model.dart';
+import 'package:akademix/core/constants/app_enums.dart';
+import 'package:akademix/core/constants/routes.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,11 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _onLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // JANGAN panggil AuthUsecase di sini secara manual.
-    // Gunakan ViewModel yang sudah terhubung dengan Provider.
     final authVm = context.read<AuthViewModel>();
 
-    // Jalankan login lewat ViewModel agar data tersimpan secara Global
     final success = await authVm.loginProcess(
       _usernameController.text.trim(),
       _passwordController.text.trim(),
@@ -41,7 +38,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (success) {
-      // Ambil data role untuk navigasi
       final role = authVm.currentUser?.role;
 
       if (role == UserRole.mahasiswa) {

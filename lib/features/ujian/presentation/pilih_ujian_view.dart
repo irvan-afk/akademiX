@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/ujian_view_model.dart';
+// 1. Pastikan import merujuk ke DosenUjianViewModel
+import '../view_models/dosen_ujian_view_model.dart';
 import 'daftar_mahasiswa_view.dart';
-import 'rekap_nilai_view.dart'; // 1. Pastikan file rekap di-import
+import 'rekap_nilai_view.dart';
 import '../../../core/widgets/akademix_card.dart';
 
 class PilihUjianView extends StatefulWidget {
@@ -21,8 +22,9 @@ class _PilihUjianViewState extends State<PilihUjianView> {
   @override
   void initState() {
     super.initState();
+
     Future.microtask(
-      () => context.read<UjianViewModel>().fetchPublishedExams(),
+      () => context.read<DosenUjianViewModel>().fetchPublishedExams(),
     );
   }
 
@@ -34,7 +36,7 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<UjianViewModel>();
+    final vm = context.watch<DosenUjianViewModel>();
 
     final filteredExams = vm.publishedExams.where((ujian) {
       final judul = ujian['judul_ujian'].toString().toLowerCase();
@@ -55,9 +57,7 @@ class _PilihUjianViewState extends State<PilihUjianView> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.isForRekap
-              ? "Pilih Sesi Rekap"
-              : "Pilih Ujian", // Judul dinamis
+          widget.isForRekap ? "Pilih Sesi Rekap" : "Pilih Ujian",
           style: const TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
@@ -73,6 +73,7 @@ class _PilihUjianViewState extends State<PilihUjianView> {
               onChanged: (value) => setState(() => _searchQuery = value),
               decoration: InputDecoration(
                 hintText: "Cari judul ujian...",
+                // Menggunakan Navy untuk konsistensi desain AkademiX
                 prefixIcon: const Icon(Icons.search, color: Color(0xFF2962FF)),
                 filled: true,
                 fillColor: const Color(0xFFF1F4FB),
@@ -98,10 +99,8 @@ class _PilihUjianViewState extends State<PilihUjianView> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: AkademixCard(
-                    // 2. Tambahkan logika pencabangan Navigasi di sini
                     onTap: () {
                       if (widget.isForRekap) {
-                        // JALUR REKAP NILAI (Menuju image_670584.jpg)
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -112,7 +111,6 @@ class _PilihUjianViewState extends State<PilihUjianView> {
                           ),
                         );
                       } else {
-                        // JALUR KOREKSI (Menuju image_66f681.png)
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -134,7 +132,7 @@ class _PilihUjianViewState extends State<PilihUjianView> {
                         ),
                         child: const Icon(
                           Icons.assignment_turned_in,
-                          color: Color(0xFF2962FF),
+                          color: Color(0xFF2962FF), // Navy
                         ),
                       ),
                       title: Text(
@@ -184,8 +182,9 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 
 // import 'package:flutter/material.dart';
 // import 'package:provider/provider.dart';
-// import '../view_models/ujian_view_model.dart';
+// import '../view_models/dosen_ujian_view_model.dart';
 // import 'daftar_mahasiswa_view.dart';
+// import 'rekap_nilai_view.dart'; // 1. Pastikan file rekap di-import
 // import '../../../core/widgets/akademix_card.dart';
 
 // class PilihUjianView extends StatefulWidget {
@@ -204,7 +203,6 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 //   @override
 //   void initState() {
 //     super.initState();
-//     // Memuat data saat halaman dibuka
 //     Future.microtask(
 //       () => context.read<UjianViewModel>().fetchPublishedExams(),
 //     );
@@ -220,7 +218,6 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 //   Widget build(BuildContext context) {
 //     final vm = context.watch<UjianViewModel>();
 
-//     // Logika filter pencarian
 //     final filteredExams = vm.publishedExams.where((ujian) {
 //       final judul = ujian['judul_ujian'].toString().toLowerCase();
 //       return judul.contains(_searchQuery.toLowerCase());
@@ -228,7 +225,6 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 
 //     return Scaffold(
 //       backgroundColor: const Color(0xFFF8FAFF),
-//       // Menggunakan AppBar standar yang lebih bersih untuk Halaman Kerja
 //       appBar: AppBar(
 //         backgroundColor: Colors.white,
 //         elevation: 0,
@@ -240,9 +236,11 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 //           ),
 //           onPressed: () => Navigator.pop(context),
 //         ),
-//         title: const Text(
-//           "Pilih Ujian",
-//           style: TextStyle(
+//         title: Text(
+//           widget.isForRekap
+//               ? "Pilih Sesi Rekap"
+//               : "Pilih Ujian", // Judul dinamis
+//           style: const TextStyle(
 //             color: Colors.black87,
 //             fontWeight: FontWeight.bold,
 //             fontSize: 18,
@@ -282,15 +280,32 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 //                 return Padding(
 //                   padding: const EdgeInsets.only(bottom: 12),
 //                   child: AkademixCard(
-//                     onTap: () => Navigator.push(
-//                       context,
-//                       MaterialPageRoute(
-//                         builder: (context) => DaftarMahasiswaView(
-//                           ujianId: ujian['id'],
-//                           judulUjian: ujian['judul_ujian'],
-//                         ),
-//                       ),
-//                     ),
+//                     // 2. Tambahkan logika pencabangan Navigasi di sini
+//                     onTap: () {
+//                       if (widget.isForRekap) {
+//                         // JALUR REKAP NILAI (Menuju image_670584.jpg)
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) => RekapNilaiView(
+//                               ujianId: ujian['id'],
+//                               judulUjian: ujian['judul_ujian'],
+//                             ),
+//                           ),
+//                         );
+//                       } else {
+//                         // JALUR KOREKSI (Menuju image_66f681.png)
+//                         Navigator.push(
+//                           context,
+//                           MaterialPageRoute(
+//                             builder: (context) => DaftarMahasiswaView(
+//                               ujianId: ujian['id'],
+//                               judulUjian: ujian['judul_ujian'],
+//                             ),
+//                           ),
+//                         );
+//                       }
+//                     },
 //                     child: ListTile(
 //                       contentPadding: EdgeInsets.zero,
 //                       leading: Container(

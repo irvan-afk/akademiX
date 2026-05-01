@@ -1,4 +1,4 @@
-name: akademiX
+name: akademix
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -34,6 +34,9 @@ dependencies:
   flutter_dotenv: ^6.0.1
   hive_flutter: ^1.1.0
   provider: ^6.1.2
+
+  sqflite: ^2.3.0
+  path: ^1.9.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

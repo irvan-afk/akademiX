@@ -1,8 +1,8 @@
-import 'package:akademiX/core/constants/supabase_constants.dart';
-import 'package:akademiX/core/models/user_model.dart';
-import 'package:akademiX/core/constants/app_enums.dart';
-import 'dart:developer'; // Untuk log yang lebih rapi
-import 'package:flutter/foundation.dart'; // Untuk debugPrint
+import 'package:akademix/core/constants/supabase_constants.dart';
+import 'package:akademix/core/models/user_model.dart';
+import 'package:akademix/core/constants/app_enums.dart';
+import 'dart:developer';
+import 'package:flutter/foundation.dart';
 
 class AuthRepositoryImpl {
   // Login
@@ -15,10 +15,10 @@ class AuthRepositoryImpl {
           .eq('password_hash', password)
           .single();
 
-      debugPrint("DEBUG REPO LOGIN SUCCESS: $data"); // Cek apakah user ketemu
+      debugPrint("DEBUG REPO LOGIN SUCCESS: $data");
       return UserModel.fromJson(data);
     } catch (e) {
-      debugPrint("DEBUG REPO LOGIN ERROR: $e"); // Cek pesan errornya apa
+      debugPrint("DEBUG REPO LOGIN ERROR: $e");
       return null;
     }
   }
@@ -37,7 +37,7 @@ class AuthRepositoryImpl {
             .eq('user_id', user.id)
             .single();
 
-        debugPrint("DEBUG REPO DETAIL MAHASISWA: $result"); // Lihat isi Map-nya
+        debugPrint("DEBUG REPO DETAIL MAHASISWA: $result");
         return result;
       } else if (user.role == UserRole.dosen) {
         final result = await supabase
@@ -46,7 +46,7 @@ class AuthRepositoryImpl {
             .eq('user_id', user.id)
             .single();
 
-        debugPrint("DEBUG REPO DETAIL DOSEN: $result"); // Lihat isi Map-nya
+        debugPrint("DEBUG REPO DETAIL DOSEN: $result");
         return result;
       }
     } catch (e) {

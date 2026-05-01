@@ -88,7 +88,6 @@ class NilaiAkhirView extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // KARTU HASIL AKHIR (Sudah dikecilkan)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 20),

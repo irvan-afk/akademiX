@@ -1,10 +1,8 @@
 // Model untuk track jawaban mahasiswa selama mengerjakan (sebelum di-submit)
 class AnswerTracker {
-  final Map<int, String>
-  selectedAnswers; // soalId -> jawaban (A/B/C/D atau teks essai)
-  final Map<int, bool>
-  markedAsRagu; // soalId -> true jika user klik "Ragu-ragu"
-  final Map<int, bool> answered; // soalId -> true jika sudah dijawab
+  final Map<int, String> selectedAnswers;
+  final Map<int, bool> markedAsRagu;
+  final Map<int, bool> answered;
 
   AnswerTracker({
     Map<int, String>? selectedAnswers,
@@ -14,17 +12,14 @@ class AnswerTracker {
        markedAsRagu = markedAsRagu ?? {},
        answered = answered ?? {};
 
-  // Cek apakah soal sudah dijawab
   bool isSoalAnswered(int soalId) {
     return answered[soalId] ?? false;
   }
 
-  // Cek apakah soal di-mark ragu
   bool isSoalRagu(int soalId) {
     return markedAsRagu[soalId] ?? false;
   }
 
-  // Get jawaban untuk soal tertentu
   String? getAnswer(int soalId) {
     return selectedAnswers[soalId];
   }

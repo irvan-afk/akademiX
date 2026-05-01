@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
-import 'package:akademiX/core/constants/routes.dart';
+import 'package:akademix/features/auth/view_models/auth_view_model.dart';
+import 'package:akademix/core/constants/routes.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -16,7 +16,6 @@ class ProfileScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Header Melengkung Biru
             Stack(
               children: [
                 Container(
@@ -108,7 +107,6 @@ class ProfileScreen extends StatelessWidget {
               ],
             ),
 
-            // Form Informasi (Read-only sesuai gambar)
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(

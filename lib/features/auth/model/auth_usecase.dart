@@ -1,5 +1,5 @@
-import 'package:akademiX/core/models/user_model.dart';
-import 'package:akademiX/features/auth/data/auth_repository_impl.dart';
+import 'package:akademix/core/models/user_model.dart';
+import 'package:akademix/features/auth/data/auth_repository_impl.dart';
 
 class AuthUsecase {
   final AuthRepositoryImpl _repo;

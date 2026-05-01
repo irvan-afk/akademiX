@@ -19,20 +19,17 @@ class SoalModel {
 
   factory SoalModel.fromJson(Map<String, dynamic> json) {
     try {
-      // Debug: cek tipe_soal value
       final tipeSoalValue = json['tipe_soal'] ?? json['tipeSoal'];
       print(
         "DEBUG SoalModel: tipe_soal raw value = '$tipeSoalValue' (type: ${tipeSoalValue.runtimeType})",
       );
 
-      // Normalize tipe_soal: convert to lowercase untuk consistency
       String normalizedTipeSoal = '';
       if (tipeSoalValue != null) {
         normalizedTipeSoal = tipeSoalValue.toString().toLowerCase().trim();
         print("DEBUG SoalModel: normalized tipe_soal = '$normalizedTipeSoal'");
       }
 
-      // Handle opsiJawaban yang mungkin null atau tipe yang salah
       Map<String, dynamic> opsi = {};
       final opsiRaw = json['opsi_jawaban'] ?? json['opsiJawaban'];
       if (opsiRaw != null && opsiRaw is Map) {
