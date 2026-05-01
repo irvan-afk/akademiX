@@ -1,5 +1,5 @@
 import '../../../../core/constants/app_enums.dart';
-import 'soal_model.dart'; // Import model relasinya
+import 'soal_model.dart';
 
 class UjianModel {
   final int id;
@@ -9,9 +9,9 @@ class UjianModel {
   final DateTime waktuSelesai;
   final int durasiMenit;
   final UjianStatus statusUjian;
-  
-  // Relasi (Opsional, tergantung apakah API mengembalikan data ini sekaligus)
-  final List<SoalModel>? daftarSoal; 
+  final String? kodeUjian;
+  final String? kodePengawasan;
+  final List<SoalModel>? daftarSoal;
 
   UjianModel({
     required this.id,
@@ -21,6 +21,8 @@ class UjianModel {
     required this.waktuSelesai,
     required this.durasiMenit,
     required this.statusUjian,
+    this.kodeUjian,
+    this.kodePengawasan,
     this.daftarSoal,
   });
 
@@ -29,16 +31,18 @@ class UjianModel {
       id: json['id'],
       pengampuId: json['pengampu_id'],
       judulUjian: json['judul_ujian'],
-      // Parse string tanggal dari database menjadi DateTime Dart
       waktuMulai: DateTime.parse(json['waktu_mulai']),
       waktuSelesai: DateTime.parse(json['waktu_selesai']),
       durasiMenit: json['durasi_menit'],
       statusUjian: UjianStatus.values.firstWhere(
-          (e) => e.name.toUpperCase() == json['status_ujian'].toString().toUpperCase()),
-      
-      // Mapping relasi array JSON ke List of Objects
-      daftarSoal: json['soal'] != null 
-          ? (json['soal'] as List).map((i) => SoalModel.fromJson(i)).toList() 
+        (e) =>
+            e.name.toUpperCase() ==
+            json['status_ujian'].toString().toUpperCase(),
+      ),
+      kodeUjian: json['kode_ujian'],
+      kodePengawasan: json['kode_pengawasan'],
+      daftarSoal: json['soal'] != null
+          ? (json['soal'] as List).map((i) => SoalModel.fromJson(i)).toList()
           : null,
     );
   }

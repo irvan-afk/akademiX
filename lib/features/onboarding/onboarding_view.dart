@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:akademiX/features/onboarding/onboarding_controller.dart';
-import 'package:akademiX/features/auth/presentation/login_screen.dart';
+import 'package:akademix/features/onboarding/onboarding_controller.dart';
+import 'package:akademix/features/auth/presentation/login_screen.dart';
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({Key? key}) : super(key: key);
@@ -190,7 +190,7 @@ class _OnboardingViewState extends State<OnboardingView> {
               ),
             ),
             Divider(height: 1, color: Colors.grey[300]),
-            // Content area yang centered
+
             Expanded(
               flex: 1,
               child: Center(

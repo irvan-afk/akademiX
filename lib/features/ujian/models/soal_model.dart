@@ -18,14 +18,46 @@ class SoalModel {
   });
 
   factory SoalModel.fromJson(Map<String, dynamic> json) {
-    return SoalModel(
-      id: json['id'],
-      ujianId: json['ujian_id'],
-      teksSoal: json['teks_soal'],
-      tipeSoal: json['tipe_soal'],
-      opsiJawaban: json['opsi_jawaban'] as Map<String, dynamic>,
-      bobotNilai: json['bobot_nilai'],
-      kunciJawaban: json['kunci_jawaban'],
-    );
+    try {
+      final tipeSoalValue = json['tipe_soal'] ?? json['tipeSoal'];
+      print(
+        "DEBUG SoalModel: tipe_soal raw value = '$tipeSoalValue' (type: ${tipeSoalValue.runtimeType})",
+      );
+
+      String normalizedTipeSoal = '';
+      if (tipeSoalValue != null) {
+        normalizedTipeSoal = tipeSoalValue.toString().toLowerCase().trim();
+        print("DEBUG SoalModel: normalized tipe_soal = '$normalizedTipeSoal'");
+      }
+
+      Map<String, dynamic> opsi = {};
+      final opsiRaw = json['opsi_jawaban'] ?? json['opsiJawaban'];
+      if (opsiRaw != null && opsiRaw is Map) {
+        try {
+          opsi = Map<String, dynamic>.from(opsiRaw);
+        } catch (e) {
+          print("Warning: opsi_jawaban type mismatch, using empty map");
+          opsi = {};
+        }
+      }
+
+      return SoalModel(
+        id: json['id'] as int? ?? 0,
+        ujianId: json['ujian_id'] as int? ?? 0,
+        teksSoal:
+            json['teks_soal'] as String? ?? json['teksSoal'] as String? ?? '',
+        tipeSoal: normalizedTipeSoal,
+        opsiJawaban: opsi,
+        bobotNilai:
+            json['bobot_nilai'] as int? ?? json['bobotNilai'] as int? ?? 0,
+        kunciJawaban:
+            json['kunci_jawaban'] as String? ??
+            json['kunciJawaban'] as String? ??
+            '',
+      );
+    } catch (e) {
+      print("Error parsing SoalModel from JSON: $e, JSON: $json");
+      rethrow;
+    }
   }
 }
