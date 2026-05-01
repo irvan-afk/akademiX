@@ -130,7 +130,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                     }
                   }
                 },
-                child: const Text("Saya Sudah Mematikan Internet"),
+                child: const Text("Saya Sudah Mematikan Internet."),
               )
             ]
           )
