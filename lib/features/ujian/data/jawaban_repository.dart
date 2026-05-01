@@ -58,9 +58,69 @@ class JawabanRepository {
       await supabase.from('JAWABAN_MAHASISWA').insert(jawabanList);
 
       debugPrint("✅ Berhasil menyimpan ${jawabanList.length} jawaban");
+
+      // 4. Auto-score pilihan_ganda answers
+      await _autoScorePilihanGanda(ujianId, sesiPengerjaanId);
     } catch (e) {
       debugPrint("❌ Error submit jawaban: $e");
       rethrow;
+    }
+  }
+
+  /// Hitung skor otomatis untuk soal pilihan_ganda berdasarkan kunci jawaban
+  Future<void> _autoScorePilihanGanda(int ujianId, int sesiPengerjaanId) async {
+    try {
+      debugPrint("🔄 Starting auto-score for pilihan_ganda...");
+
+      // Get all soal pilihan_ganda for this ujian
+      final soalResponse = await supabase
+          .from('soal')
+          .select('id, tipe_soal, kunci_jawaban, bobot_nilai')
+          .eq('ujian_id', ujianId)
+          .eq('tipe_soal', 'pilihan_ganda');
+
+      for (var soal in soalResponse) {
+        final soalId = soal['id'] as int;
+        final kunciJawaban = (soal['kunci_jawaban'] as String?)?.toLowerCase();
+        final bobotNilai = soal['bobot_nilai'] as int?;
+
+        if (kunciJawaban == null || bobotNilai == null) continue;
+
+        // Get jawaban mahasiswa for this soal
+        final jawabanResponse = await supabase
+            .from('JAWABAN_MAHASISWA')
+            .select('id, jawaban_teks')
+            .eq('sesi_pengerjaan_id', sesiPengerjaanId)
+            .eq('soal_id', soalId);
+
+        if (jawabanResponse.isEmpty) continue;
+
+        final jawaban = jawabanResponse.first;
+        final jawabanId = jawaban['id'] as int;
+        final jawabanTeks = (jawaban['jawaban_teks'] as String?)?.toLowerCase();
+
+        // Compare and calculate score
+        int nilai = 0;
+        if (jawabanTeks != null && jawabanTeks == kunciJawaban) {
+          nilai = bobotNilai;
+          debugPrint(
+            "✅ Soal $soalId correct: $jawabanTeks == $kunciJawaban, nilai=$nilai",
+          );
+        } else {
+          debugPrint("❌ Soal $soalId wrong: $jawabanTeks != $kunciJawaban");
+        }
+
+        // Update nilai in JAWABAN_MAHASISWA
+        await supabase
+            .from('JAWABAN_MAHASISWA')
+            .update({'nilai': nilai})
+            .eq('id', jawabanId);
+      }
+
+      debugPrint("✅ Auto-scoring selesai");
+    } catch (e) {
+      debugPrint("❌ Error auto-score: $e");
+      // Don't rethrow - auto-scoring failure shouldn't block submission
     }
   }
 
@@ -97,24 +157,37 @@ class JawabanRepository {
   /// Ambil semua mahasiswa yang sudah submit untuk satu ujian (untuk dosen)
   Future<List<Map<String, dynamic>>> getSubmissionsForExam(int ujianId) async {
     try {
+      // Get submissions dengan detail mahasiswa
       final response = await supabase
           .from('SESI_PENGERJAAN')
-          .select('''
-            id,
-            ujian_id,
-            mahasiswa_id,
-            status_pengerjaan,
-            submitted_at,
-            MAHASISWA(
-              id,
-              nama_mahasiswa,
-              nim
-            )
-          ''')
+          .select('id, ujian_id, mahasiswa_id, status_pengerjaan, submitted_at')
           .eq('ujian_id', ujianId)
           .eq('status_pengerjaan', 'SUBMITTED');
 
-      return List<Map<String, dynamic>>.from(response);
+      // Fetch mahasiswa details separately
+      final submissionsWithMahasiswa = <Map<String, dynamic>>[];
+      for (var sesi in response) {
+        try {
+          final mahasiswaId = sesi['mahasiswa_id'] as int?;
+          if (mahasiswaId == null) continue;
+
+          final mahasiswaResp = await supabase
+              .from('MAHASISWA')
+              .select('id, nama_mahasiswa, nim')
+              .eq('id', mahasiswaId)
+              .single();
+
+          sesi['MAHASISWA'] = mahasiswaResp;
+          submissionsWithMahasiswa.add(sesi);
+        } catch (e) {
+          debugPrint("Error fetching mahasiswa $e");
+          // Add with null MAHASISWA if fetch fails
+          sesi['MAHASISWA'] = null;
+          submissionsWithMahasiswa.add(sesi);
+        }
+      }
+
+      return submissionsWithMahasiswa;
     } catch (e) {
       debugPrint("Error get submissions: $e");
       rethrow;

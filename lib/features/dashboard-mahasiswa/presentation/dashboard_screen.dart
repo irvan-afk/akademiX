@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
-import 'package:akademiX/features/auth/presentation/profile_screen.dart'; // Pastikan path benar
 import 'package:akademiX/core/constants/routes.dart';
-import 'package:akademiX/features/ujian/presentation/join_ujian_screen.dart'; // Import halaman join ujian
-import 'package:akademiX/features/ujian/presentation/koreksi_jawaban_screen.dart'; // Import untuk RiwayatMahasiswaScreen
+import 'package:akademiX/features/auth/presentation/profile_screen.dart';
+// UPDATE IMPORT:
+import '../../ujian/presentation/join_ujian_screen.dart';
+import '../../ujian/presentation/riwayat_mahasiswa_view.dart'; // File baru kita
 
 class DashboardMahasiswaScreen extends StatefulWidget {
   const DashboardMahasiswaScreen({super.key});
@@ -17,7 +18,6 @@ class DashboardMahasiswaScreen extends StatefulWidget {
 class _DashboardMahasiswaScreenState extends State<DashboardMahasiswaScreen> {
   int _currentIndex = 0;
 
-  // Build pages dinamis agar bisa mengakses context untuk AuthViewModel
   List<Widget> _buildPages(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
     final mahasiswaId = authVM.userData?['id'] as int? ?? 0;
@@ -25,8 +25,9 @@ class _DashboardMahasiswaScreenState extends State<DashboardMahasiswaScreen> {
     return [
       const BerandaContent(),
       const Center(child: Text("Halaman Jadwal")),
-      RiwayatMahasiswaScreen(mahasiswaId: mahasiswaId),
-      const ProfileScreen(), // Halaman profil dengan tombol logout
+      // Gunakan class baru hasil pemisahan SRP
+      RiwayatMahasiswaView(mahasiswaId: mahasiswaId),
+      const ProfileScreen(),
     ];
   }
 

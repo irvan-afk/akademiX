@@ -4,7 +4,9 @@ import 'package:akademiX/features/auth/view_models/auth_view_model.dart';
 import 'package:akademiX/features/auth/presentation/profile_screen.dart';
 import 'package:akademiX/core/constants/routes.dart';
 import '../../ujian/presentation/publish_bank_soal_screen.dart';
-import '../../ujian/presentation/koreksi_jawaban_screen.dart' as koreksi;
+import '../../ujian/presentation/publish_bank_soal_screen.dart';
+import '../../ujian/presentation/pilih_ujian_view.dart';
+import '../../ujian/presentation/rekap_nilai_view.dart';
 
 class DashboardDosenScreen extends StatefulWidget {
   const DashboardDosenScreen({super.key});
@@ -16,78 +18,173 @@ class DashboardDosenScreen extends StatefulWidget {
 class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
   int _currentIndex = 0;
 
-  @override
-  Widget build(BuildContext context) {
+  List<Widget> _buildPages(BuildContext context) {
+    return [
+      _buildBerandaPage(context), // Index 0: Beranda
+      _buildJadwalPage(), // Index 1: Jadwal
+      _buildRiwayatPage(), // Index 2: Riwayat
+      const ProfileScreen(), // Index 3: Profile
+    ];
+  }
+
+  Widget _buildBerandaPage(BuildContext context) {
     final authVm = context.watch<AuthViewModel>();
     final String namaDosen = authVm.userData?['nama'] ?? "Dosen";
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFF),
-      body: Column(
-        children: [
-          // Header Statis
-          _buildHeader(namaDosen),
+    return Column(
+      children: [
+        // Header Statis
+        _buildHeader(namaDosen),
 
-          // Konten Scrollable
-          Expanded(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 20,
+        // Konten Scrollable
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20,
+              ),
+              child: Column(
+                children: [
+                  // Grid Menu
+                  GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildMenuItem(Icons.add_circle_outline, "Bank Soal"),
+                      _buildMenuItem(
+                        Icons.file_download_outlined,
+                        "Rekap Nilai",
+                        onTap: () {
+                          // Kita arahkan ke PilihUjianView dulu untuk memilih sesi ujian
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const PilihUjianView(isForRekap: true),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        Icons.assignment_turned_in_outlined,
+                        "Koreksi Essai",
+                        onTap: () => _showUjianSelector(context),
+                      ),
+                      _buildMenuItem(
+                        Icons.language_outlined,
+                        "Publish",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const PublishBankSoalScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJadwalPage() {
+    return SafeArea(
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: const Color(0xFF2962FF),
+            child: const Row(
+              children: [
+                SizedBox(width: 8),
+                Text(
+                  "Jadwal Mengajar",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    // Grid Menu
-                    // Grid Menu
-                    GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 20,
-                      mainAxisSpacing: 20,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      children: [
-                        _buildMenuItem(Icons.add_circle_outline, "Bank Soal"),
-                        _buildMenuItem(
-                          Icons.file_download_outlined,
-                          "Rekap Nilai",
-                        ),
-                        _buildMenuItem(
-                          Icons.assignment_turned_in_outlined,
-                          "Koreksi Essai",
-                          onTap: () => _showUjianSelector(context),
-                        ),
-                        // Update bagian Publish di bawah ini:
-                        _buildMenuItem(
-                          Icons.language_outlined,
-                          "Publish",
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const PublishBankSoalScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 30),
-                  ],
-                ),
+              ],
+            ),
+          ),
+          // Content
+          const Expanded(
+            child: Center(
+              child: Text(
+                "Fitur Jadwal akan segera hadir",
+                style: TextStyle(color: Colors.grey, fontSize: 16),
               ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(context),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: const Color(0xFF2962FF),
-        child: const Icon(Icons.add, color: Colors.white),
+    );
+  }
+
+  Widget _buildRiwayatPage() {
+    return SafeArea(
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: const Color(0xFF2962FF),
+            child: const Row(
+              children: [
+                SizedBox(width: 8),
+                Text(
+                  "Riwayat Aktivitas",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          const Expanded(
+            child: Center(
+              child: Text(
+                "Fitur Riwayat akan segera hadir",
+                style: TextStyle(color: Colors.grey, fontSize: 16),
+              ),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFF),
+      body: _buildPages(context)[_currentIndex],
+      bottomNavigationBar: _buildBottomNav(context),
+      floatingActionButton: _currentIndex == 0
+          ? FloatingActionButton(
+              onPressed: () {},
+              backgroundColor: const Color(0xFF2962FF),
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
@@ -263,34 +360,22 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildNavIcon(context, Icons.home, "Beranda", 0, () {}),
-            _buildNavIcon(context, Icons.calendar_today, "Jadwal", 1, () {}),
+            _buildNavIcon(Icons.home, "Beranda", 0),
+            _buildNavIcon(Icons.calendar_today, "Jadwal", 1),
             const SizedBox(width: 40),
-            _buildNavIcon(context, Icons.history, "Riwayat", 2, () {}),
-            _buildNavIcon(context, Icons.person, "Profile", 3, () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            }),
+            _buildNavIcon(Icons.history, "Riwayat", 2),
+            _buildNavIcon(Icons.person, "Profile", 3),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavIcon(
-    BuildContext context,
-    IconData icon,
-    String label,
-    int index,
-    VoidCallback onTap,
-  ) {
+  Widget _buildNavIcon(IconData icon, String label, int index) {
     bool active = _currentIndex == index;
     return GestureDetector(
       onTap: () {
         setState(() => _currentIndex = index);
-        onTap();
       },
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -317,7 +402,7 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
   void _showUjianSelector(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const koreksi.PilihUjianScreen()),
+      MaterialPageRoute(builder: (context) => const PilihUjianView()),
     );
   }
 }
