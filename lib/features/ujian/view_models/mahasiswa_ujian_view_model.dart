@@ -35,6 +35,8 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
 
   // Manajemen Timer
   Timer? _timer;
+  final Stopwatch _stopwatch = Stopwatch();
+  final Duration _durasiUjian = const Duration(hours: 2);
   Duration _timeRemaining = const Duration(hours: 2);
   String get timerString => _formatDuration(_timeRemaining);
 
@@ -113,6 +115,8 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
       }
 
       _daftarSoal = dataLokal.map((s) => SoalModel.fromJson(s)).toList();
+      _stopwatch.reset();
+      _stopwatch.start();
       _startTimer();
     } catch (e) {
       debugPrint("DEBUG ERROR START: $e");
@@ -217,11 +221,15 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_timeRemaining.inSeconds > 0) {
-        _timeRemaining -= const Duration(seconds: 1);
+      final elapsed = _stopwatch.elapsed;
+      if (elapsed < _durasiUjian) {
+        _timeRemaining = _durasiUjian - elapsed;
         notifyListeners();
       } else {
+        _timeRemaining = Duration.zero;
+        notifyListeners();
         _timer?.cancel();
+        _stopwatch.stop();
         submitUjian();
       }
     });
@@ -252,6 +260,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _timer?.cancel();
+    _stopwatch.stop();
     super.dispose();
   }
 }

@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../view_models/mahasiswa_ujian_view_model.dart';
 // 1. IMPORT AuthViewModel untuk ambil ID Mahasiswa
 import '../../auth/view_models/auth_view_model.dart';
-import 'sesi_ujian_screen.dart';
+// import 'sesi_ujian_screen.dart';
 import '../../../core/widgets/curved_header.dart';
 import '../../../core/widgets/akademix_card.dart';
 

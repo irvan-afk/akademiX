@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:math';
+// import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:akademix/features/auth/view_models/auth_view_model.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:akademix/features/auth/view_models/auth_view_model.dart';
 import '../models/soal_model.dart';
 import '../models/answer_tracker_model.dart';
 import '../data/jawaban_repository.dart';
@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/services.dart';
 import '../view_models/mahasiswa_ujian_view_model.dart';
 
 class UjianScreen extends StatefulWidget {
@@ -41,6 +42,9 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _initSecurityFeatures() async {
+    // 0. Bersihkan Clipboard di awal
+    await Clipboard.setData(const ClipboardData(text: ''));
+
     // 1. Anti-Screenshot
     await ScreenProtector.preventScreenshotOn();
     await ScreenProtector.protectDataLeakageWithBlur(); // For iOS
@@ -69,7 +73,9 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.resumed) {
+      Clipboard.setData(const ClipboardData(text: ''));
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
       _handleViolation();
     }
   }
@@ -363,6 +369,10 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                     ),
                   ),
             maxLines: 8,
+            enableInteractiveSelection: false,
+            contextMenuBuilder: (context, editableTextState) {
+              return const SizedBox.shrink();
+            },
             decoration: const InputDecoration(
               hintText: "Ketik jawaban Anda di sini...",
               border: InputBorder.none,
