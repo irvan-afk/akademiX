@@ -22,6 +22,9 @@ import 'package:akademix/features/ujian/presentation/join_ujian_screen.dart';
 import 'package:akademix/features/ujian/presentation/submission_result_screen.dart';
 import 'package:akademix/features/ujian/presentation/sesi_ujian_screen.dart';
 
+// Import Bank Soal
+import 'package:akademix/features/bank_soal/view_models/bank_soal_view_model.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -45,6 +48,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AuthViewModel(authUsecase)),
         ChangeNotifierProvider(create: (_) => MahasiswaUjianViewModel()),
         ChangeNotifierProvider(create: (_) => DosenUjianViewModel()),
+        ChangeNotifierProvider(create: (_) => BankSoalViewModel()),
       ],
       child: const MyApp(),
     ),

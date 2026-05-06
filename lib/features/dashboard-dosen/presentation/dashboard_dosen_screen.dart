@@ -3,10 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:akademix/features/auth/view_models/auth_view_model.dart';
 import 'package:akademix/features/auth/presentation/profile_screen.dart';
 import 'package:akademix/core/constants/routes.dart';
-import '../../ujian/presentation/publish_bank_soal_screen.dart';
+import '../../bank_soal/presentation/bank_soal_list_screen.dart';
 import '../../ujian/presentation/publish_bank_soal_screen.dart';
 import '../../ujian/presentation/pilih_ujian_view.dart';
-import '../../ujian/presentation/rekap_nilai_view.dart';
 
 class DashboardDosenScreen extends StatefulWidget {
   const DashboardDosenScreen({super.key});
@@ -50,10 +49,22 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 20,
                     mainAxisSpacing: 20,
+                    childAspectRatio: 1.1,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
-                      _buildMenuItem(Icons.add_circle_outline, "Bank Soal"),
+                      _buildMenuItem(
+                        Icons.add_circle_outline,
+                        "Bank Soal",
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const BankSoalListScreen(),
+                            ),
+                          );
+                        },
+                      ),
                       _buildMenuItem(
                         Icons.file_download_outlined,
                         "Rekap Nilai",
@@ -233,9 +244,9 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircleAvatar(
-                    radius: 35,
+                    radius: 28,
                     backgroundColor: Color(0xFFFFA000),
-                    child: Icon(Icons.face, size: 20, color: Colors.white),
+                    child: Icon(Icons.face, size: 18, color: Colors.white),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
@@ -258,7 +269,7 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
           const SizedBox(height: 24),
           // Card Monitoring Live
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(25),
@@ -277,25 +288,25 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
                   style: TextStyle(
                     color: Color(0xFF2962FF),
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 16,
                   ),
                 ),
-                const SizedBox(height: 15),
-                const Icon(Icons.search, size: 50, color: Colors.black12),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
+                const Icon(Icons.search, size: 36, color: Colors.black12),
+                const SizedBox(height: 8),
                 const Text(
                   "Tidak ada sesi aktif. Pilih ujian untuk dimulai atau masukkan kode pengawas.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.black54, fontSize: 13),
+                  style: TextStyle(color: Colors.black54, fontSize: 12),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2962FF),
-                    minimumSize: const Size(double.infinity, 50),
+                    minimumSize: const Size(double.infinity, 44),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
@@ -320,11 +331,11 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.08),
-              blurRadius: 15,
+              blurRadius: 10,
               offset: const Offset(0, 8),
             ),
           ],
@@ -333,21 +344,21 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(15),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: const Color(0xFFE3F2FD),
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF2962FF), size: 35),
+              child: Icon(icon, color: const Color(0xFF2962FF), size: 28),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Color(0xFF2962FF),
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 13,
               ),
             ),
           ],
