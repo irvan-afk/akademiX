@@ -40,7 +40,7 @@ class OnboardingController {
   bool get isLastOnboardingStep => (_step - 1) == totalSteps - 1;
 
   bool nextStep() {
-    if (_step < totalSteps - 1) {
+    if (_step < totalPageViewSteps - 1) {
       _step++;
       return false;
     }

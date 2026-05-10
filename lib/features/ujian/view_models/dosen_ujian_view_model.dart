@@ -50,7 +50,8 @@ class DosenUjianViewModel extends ChangeNotifier {
       final response = await _supabase
           .from('UJIAN')
           .select('*, PENGAMPU!inner(dosen_id)')
-          .eq('PENGAMPU.dosen_id', dosenId);
+          .eq('PENGAMPU.dosen_id', dosenId)
+          .order('id', ascending: false);
 
       _allUjianDosen = (response as List)
           .map((e) => UjianModel.fromJson(e))
@@ -254,6 +255,26 @@ class DosenUjianViewModel extends ChangeNotifier {
   }
 
   // --- LOGIKA MONITORING REALTIME ---
+  Future<Map<String, dynamic>?> joinPengawasan(String kodePengawasan) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _supabase
+          .from('UJIAN')
+          .select('id, judul_ujian, pin_mulai')
+          .eq('kode_pengawasan', kodePengawasan)
+          .maybeSingle();
+      
+      return response;
+    } catch (e) {
+      debugPrint("Error Join Pengawasan: $e");
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void startMonitoring(int ujianId) {
     if (_monitoringChannel != null) return;
     _monitoringChannel = _supabase.channel('exam_monitoring_$ujianId');

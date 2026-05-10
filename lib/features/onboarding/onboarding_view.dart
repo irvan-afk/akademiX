@@ -11,36 +11,42 @@ class OnboardingView extends StatefulWidget {
 
 class _OnboardingViewState extends State<OnboardingView> {
   late OnboardingController controller;
-  late PageController pageController;
 
   @override
   void initState() {
     super.initState();
     controller = OnboardingController();
-    pageController = PageController();
   }
 
-  @override
-  void dispose() {
-    pageController.dispose();
-    super.dispose();
+  void _nextStep() {
+    final isFinished = controller.nextStep();
+
+    if (isFinished) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } else {
+      setState(() {});
+    }
+  }
+
+  void _previousStep() {
+    controller.previousStep();
+    setState(() {});
+  }
+
+  void _skip() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView(
-        controller: pageController,
-        onPageChanged: (index) {
-          setState(() {
-            controller.step = index;
-          });
-        },
-        children: [
-          _buildSplashScreen(context),
-          ..._buildOnboardingScreens(context),
-        ],
-      ),
+      body: controller.step == 0
+          ? _buildSplashScreen(context)
+          : _buildOnboardingScreen(context, controller.step - 1),
     );
   }
 
@@ -65,11 +71,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                   SizedBox(width: 48),
                   SizedBox(width: 48),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
-                      );
-                    },
+                    onTap: _skip,
                     child: Text(
                       'Lewati',
                       style: TextStyle(
@@ -121,12 +123,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: () {
-                    pageController.nextPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
+                  onPressed: _nextStep,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
@@ -150,13 +147,6 @@ class _OnboardingViewState extends State<OnboardingView> {
     );
   }
 
-  List<Widget> _buildOnboardingScreens(BuildContext context) {
-    return List.generate(
-      controller.totalSteps,
-      (index) => _buildOnboardingScreen(context, index),
-    );
-  }
-
   Widget _buildOnboardingScreen(BuildContext context, int index) {
     return Container(
       color: Color(0xFFF3F4F6),
@@ -172,11 +162,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                   SizedBox(width: 48),
                   SizedBox(width: 48),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (context) => LoginScreen()),
-                      );
-                    },
+                    onTap: _skip,
                     child: Text(
                       'Lewati',
                       style: TextStyle(
@@ -260,18 +246,13 @@ class _OnboardingViewState extends State<OnboardingView> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: index == 0
+                          onPressed: controller.step == 1
                               ? null
-                              : () {
-                                  pageController.previousPage(
-                                    duration: Duration(milliseconds: 300),
-                                    curve: Curves.easeInOut,
-                                  );
-                                },
+                              : _previousStep,
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 14),
                             side: BorderSide(
-                              color: index == 0
+                              color: controller.step == 1
                                   ? Colors.grey[300]!
                                   : Color(0xFF3B82F6),
                               width: 2,
@@ -285,7 +266,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: index == 0
+                              color: controller.step == 1
                                   ? Colors.grey[400]
                                   : Color(0xFF3B82F6),
                             ),
@@ -295,20 +276,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                       SizedBox(width: 16),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            if (controller.isLastPageViewStep) {
-                              Navigator.of(context).pushReplacement(
-                                MaterialPageRoute(
-                                  builder: (context) => LoginScreen(),
-                                ),
-                              );
-                            } else {
-                              pageController.nextPage(
-                                duration: Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                              );
-                            }
-                          },
+                          onPressed: _nextStep,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF3B82F6),
                             padding: EdgeInsets.symmetric(vertical: 14),
@@ -317,7 +285,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                             ),
                           ),
                           child: Text(
-                            controller.isLastPageViewStep
+                            controller.step == controller.totalPageViewSteps - 1
                                 ? 'Mulai'
                                 : 'Lanjutkan',
                             style: TextStyle(
