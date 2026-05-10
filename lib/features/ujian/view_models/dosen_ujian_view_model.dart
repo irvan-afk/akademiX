@@ -45,7 +45,8 @@ class DosenUjianViewModel extends ChangeNotifier {
       final response = await _supabase
           .from('UJIAN')
           .select('*, PENGAMPU!inner(dosen_id)')
-          .eq('PENGAMPU.dosen_id', dosenId);
+          .eq('PENGAMPU.dosen_id', dosenId)
+          .order('id', ascending: false);
 
       _allUjianDosen = (response as List)
           .map((e) => UjianModel.fromJson(e))

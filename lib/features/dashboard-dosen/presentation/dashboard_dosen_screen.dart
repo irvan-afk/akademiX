@@ -233,7 +233,7 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircleAvatar(
-                    radius: 35,
+                    radius: 25,
                     backgroundColor: Color(0xFFFFA000),
                     child: Icon(Icons.face, size: 20, color: Colors.white),
                   ),

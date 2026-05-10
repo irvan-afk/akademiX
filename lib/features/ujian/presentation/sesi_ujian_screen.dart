@@ -24,11 +24,10 @@ class UjianScreen extends StatefulWidget {
 }
 
 class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
-  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  late StreamSubscription<dynamic> _connectivitySubscription;
   int _violationCount = 0;
   bool _isWarningDialogShowing = false;
   bool _isInternetDialogShowing = false;
-
   @override
   void initState() {
     super.initState();
@@ -50,14 +49,30 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     await ScreenProtector.protectDataLeakageWithBlur(); // For iOS
 
     // 2. Anti-Internet
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
-      if (results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi)) {
-         _showInternetWarningDialog();
-      } else {
-         if (_isInternetDialogShowing && mounted) {
-           Navigator.of(context, rootNavigator: true).pop();
-           _isInternetDialogShowing = false;
-         }
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      dynamic event,
+    ) {
+      // Handle both single ConnectivityResult or List<ConnectivityResult>
+      if (event is ConnectivityResult) {
+        if (event == ConnectivityResult.mobile ||
+            event == ConnectivityResult.wifi) {
+          _showInternetWarningDialog();
+        } else {
+          if (_isInternetDialogShowing && mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+            _isInternetDialogShowing = false;
+          }
+        }
+      } else if (event is List) {
+        if (event.contains(ConnectivityResult.mobile) ||
+            event.contains(ConnectivityResult.wifi)) {
+          _showInternetWarningDialog();
+        } else {
+          if (_isInternetDialogShowing && mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+            _isInternetDialogShowing = false;
+          }
+        }
       }
     });
   }
@@ -75,7 +90,8 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       Clipboard.setData(const ClipboardData(text: ''));
-    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       _handleViolation();
     }
   }
@@ -85,7 +101,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     if (_violationCount >= 3) {
       context.read<MahasiswaUjianViewModel>().submitUjian();
       if (mounted) {
-         Navigator.pushReplacementNamed(context, '/submission-result');
+        Navigator.pushReplacementNamed(context, '/submission-result');
       }
     } else {
       if (!_isWarningDialogShowing && mounted) {
@@ -97,18 +113,23 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
             canPop: false,
             child: AlertDialog(
               title: const Text("Peringatan Pelanggaran!"),
-              content: Text("Anda terdeteksi keluar dari aplikasi ujian.\n\nPelanggaran ke-$_violationCount dari maksimal 3.\nJika mencapai 3x, ujian akan otomatis disubmit."),
+              content: Text(
+                "Anda terdeteksi keluar dari aplikasi ujian.\n\nPelanggaran ke-$_violationCount dari maksimal 3.\nJika mencapai 3x, ujian akan otomatis disubmit.",
+              ),
               actions: [
                 TextButton(
                   onPressed: () {
                     Navigator.pop(context);
                     _isWarningDialogShowing = false;
                   },
-                  child: const Text("Mengerti", style: TextStyle(color: Colors.red)),
-                )
-              ]
+                  child: const Text(
+                    "Mengerti",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
             ),
-          )
+          ),
         );
       }
     }
@@ -124,12 +145,15 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
           canPop: false,
           child: AlertDialog(
             title: const Text("Koneksi Internet Terdeteksi!"),
-            content: const Text("Harap matikan WiFi atau Data Seluler Anda untuk melanjutkan ujian offline ini."),
+            content: const Text(
+              "Harap matikan WiFi atau Data Seluler Anda untuk melanjutkan ujian offline ini.",
+            ),
             actions: [
               ElevatedButton(
                 onPressed: () async {
                   final results = await Connectivity().checkConnectivity();
-                  if (!results.contains(ConnectivityResult.mobile) && !results.contains(ConnectivityResult.wifi)) {
+                  if (!results.contains(ConnectivityResult.mobile) &&
+                      !results.contains(ConnectivityResult.wifi)) {
                     if (mounted) {
                       Navigator.of(context, rootNavigator: true).pop();
                       _isInternetDialogShowing = false;
@@ -137,10 +161,10 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                   }
                 },
                 child: const Text("Saya Sudah Mematikan Internet."),
-              )
-            ]
-          )
-        )
+              ),
+            ],
+          ),
+        ),
       );
     }
   }

@@ -16,17 +16,15 @@ class DashboardMahasiswaScreen extends StatefulWidget {
 }
 
 class _DashboardMahasiswaScreenState extends State<DashboardMahasiswaScreen> {
-  int _currentIndex = 0;
+  int _currentIndex = 1;
 
   List<Widget> _buildPages(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
     final mahasiswaId = authVM.userData?['id'] as int? ?? 0;
 
     return [
+      _RiwayatPage(mahasiswaId: mahasiswaId),
       const BerandaContent(),
-      const Center(child: Text("Halaman Jadwal")),
-
-      RiwayatMahasiswaView(mahasiswaId: mahasiswaId),
       const ProfileScreen(),
     ];
   }
@@ -34,53 +32,129 @@ class _DashboardMahasiswaScreenState extends State<DashboardMahasiswaScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFF),
       body: _buildPages(context)[_currentIndex],
 
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
+        elevation: 8,
+        color: Colors.white,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildNavItem(Icons.home_outlined, "Beranda", 0),
-              _buildNavItem(Icons.calendar_today_outlined, "Jadwal", 1),
-              const SizedBox(width: 40),
-              _buildNavItem(Icons.access_time, "Riwayat", 2),
-              _buildNavItem(Icons.person_outlined, "Profile", 3),
+              _buildNavItem(Icons.history, "Riwayat", 0),
+              _buildCenterNavItem(Icons.home, "Beranda", 1),
+              _buildNavItem(Icons.person, "Profile", 2),
             ],
           ),
         ),
       ),
-
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.blueAccent,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
   Widget _buildNavItem(IconData icon, String label, int index) {
-    bool isActive = _currentIndex == index;
-    return InkWell(
+    final active = _currentIndex == index;
+    return GestureDetector(
       onTap: () => setState(() => _currentIndex = index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: isActive ? Colors.blueAccent : Colors.grey),
+          Icon(
+            icon,
+            color: active ? const Color(0xFF2962FF) : Colors.grey[400],
+            size: 22,
+          ),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
-              color: isActive ? Colors.blueAccent : Colors.grey,
+              color: active ? const Color(0xFF2962FF) : Colors.grey[400],
               fontSize: 10,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCenterNavItem(IconData icon, String label, int index) {
+    final active = _currentIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(5),
+            decoration: BoxDecoration(
+              color: active
+                  ? const Color(0xFF2962FF).withOpacity(0.10)
+                  : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: active ? const Color(0xFF2962FF) : Colors.grey[400],
+              size: 24,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            label,
+            style: TextStyle(
+              color: active ? const Color(0xFF2962FF) : Colors.grey[400],
+              fontSize: 10,
+              fontWeight: active ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RiwayatPage extends StatelessWidget {
+  final int mahasiswaId;
+
+  const _RiwayatPage({required this.mahasiswaId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Color(0xFF2962FF),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(50),
+              bottomRight: Radius.circular(50),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 50, 24, 20),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Riwayat Ujian",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                "Lihat seluruh ujian yang sudah kamu selesaikan",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        ),
+        Expanded(child: RiwayatMahasiswaView(mahasiswaId: mahasiswaId)),
+      ],
     );
   }
 }
@@ -91,66 +165,104 @@ class BerandaContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authVm = context.watch<AuthViewModel>();
-
     final ujianVm = context.watch<MahasiswaUjianViewModel>();
 
     final String namaMahasiswa = authVm.userData?['nama'] ?? "Mahasiswa";
-    final String nimMahasiswa = authVm.userData?['nim'] ?? "";
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 20),
-            _buildUserHeader(namaMahasiswa, nimMahasiswa, context),
-            const SizedBox(height: 30),
-
-            if (ujianVm.activeUjian != null)
-              _buildPaketTerunduhCard(context, ujianVm.activeUjian!)
-            else
-              _buildJoinCard(context),
-          ],
+    return Column(
+      children: [
+        _buildHeader(namaMahasiswa, context),
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 20,
+              ),
+              child: Column(
+                children: [
+                  if (ujianVm.activeUjian != null)
+                    _buildPaketTerunduhCard(context, ujianVm.activeUjian!)
+                  else
+                    _buildJoinCard(context),
+                  const SizedBox(height: 30),
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  // --- WIDGET HELPER ---
-
-  Widget _buildUserHeader(String nama, String nim, BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Hello,",
-              style: TextStyle(color: Colors.blue.shade700, fontSize: 16),
-            ),
-            Text(
-              nama,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
-            ),
-            if (nim.isNotEmpty)
-              Text(
-                nim,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-          ],
+  Widget _buildHeader(String nama, BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFF2962FF),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(50),
+          bottomRight: Radius.circular(50),
         ),
-        const CircleAvatar(
-          radius: 25,
-          backgroundColor: Colors.orangeAccent,
-          child: Icon(Icons.face, color: Colors.white),
-        ),
-      ],
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 50, 24, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Hello,",
+                      style: TextStyle(color: Colors.white70, fontSize: 18),
+                    ),
+                    Text(
+                      nama,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Color(0xFFFFA000),
+                    child: Icon(Icons.face, size: 18, color: Colors.white),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: () {
+                      final authVm = context.read<AuthViewModel>();
+                      authVm.logout();
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        Routes.login,
+                        (route) => false,
+                      );
+                    },
+                    tooltip: "Logout",
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -159,11 +271,11 @@ class BerandaContent extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.blueAccent,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.blueAccent.withOpacity(0.3),
+            color: Colors.black.withOpacity(0.08),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -173,26 +285,43 @@ class BerandaContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Masukkan Kode\nuntuk Join Ujian",
+            "MASUKKAN KODE",
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF2962FF),
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Join Ujian Sekarang",
+            style: TextStyle(
+              color: Colors.black87,
               fontSize: 22,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const JoinUjianScreen()),
-            ),
-            icon: const Icon(Icons.vpn_key_outlined, size: 18),
-            label: const Text("Join Sekarang"),
-            style: ElevatedButton.styleFrom(
-              foregroundColor: Colors.blueAccent,
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const JoinUjianScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.vpn_key_outlined, size: 18),
+              label: const Text("Mulai Sekarang"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2962FF),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                elevation: 0,
               ),
             ),
           ),
@@ -210,9 +339,9 @@ class BerandaContent extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -222,7 +351,7 @@ class BerandaContent extends StatelessWidget {
           const Text(
             "PAKET TERUNDUH",
             style: TextStyle(
-              color: Colors.blueAccent,
+              color: Color(0xFF2962FF),
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
@@ -240,16 +369,16 @@ class BerandaContent extends StatelessWidget {
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
-            height: 50,
+            height: 55,
             child: ElevatedButton(
               onPressed: () {
                 Navigator.pushNamed(context, '/ujian', arguments: ujian.id);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
+                backgroundColor: const Color(0xFF2962FF),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(15),
                 ),
                 elevation: 0,
               ),
