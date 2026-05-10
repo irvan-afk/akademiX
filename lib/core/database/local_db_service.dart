@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:flutter/foundation.dart';
 
 class LocalDbService {
   static final LocalDbService instance = LocalDbService._init();
@@ -210,5 +211,166 @@ class LocalDbService {
       where: 'sesi_pengerjaan_id = ?',
       whereArgs: [sesiId],
     );
+  }
+
+  Future<Map<String, dynamic>?> getLatestBankSoalDraft({
+    required int? dosenId,
+  }) async {
+    await _ensureBankSoalTables();
+    if (dosenId == null) return null;
+    final db = await database;
+
+    final List<Map<String, dynamic>> drafts = await db.query(
+      'bank_soal_lokal',
+      where: 'dosen_id = ?',
+      whereArgs: [dosenId],
+      orderBy: 'updated_at DESC',
+      limit: 1,
+    );
+
+    if (drafts.isEmpty) {
+      return null;
+    }
+
+    final draftMap = drafts.first;
+    final bankSoalId = draftMap['id'];
+
+    final List<Map<String, dynamic>> soalItems = await db.query(
+      'bank_soal_item_lokal',
+      where: 'bank_soal_id = ?',
+      whereArgs: [bankSoalId],
+      orderBy: 'urutan ASC',
+    );
+
+    return {'bank_soal': draftMap, 'soal': soalItems};
+  }
+
+  Future<Map<String, dynamic>?> getBankSoalDraftByRemoteUjianId(
+    int remoteUjianId,
+  ) async {
+    await _ensureBankSoalTables();
+    final db = await database;
+
+    final List<Map<String, dynamic>> drafts = await db.query(
+      'bank_soal_lokal',
+      where: 'remote_ujian_id = ?',
+      whereArgs: [remoteUjianId],
+    );
+
+    if (drafts.isEmpty) {
+      return null;
+    }
+
+    final draftMap = drafts.first;
+    final bankSoalId = draftMap['id'];
+
+    final List<Map<String, dynamic>> soalItems = await db.query(
+      'bank_soal_item_lokal',
+      where: 'bank_soal_id = ?',
+      whereArgs: [bankSoalId],
+      orderBy: 'urutan ASC',
+    );
+
+    return {'bank_soal': draftMap, 'soal': soalItems};
+  }
+
+  Future<int> saveBankSoalDraft({
+    required int? id,
+    required int? dosenId,
+    required int? pengampuId,
+    required String? pengampuLabel,
+    required int? remoteUjianId,
+    required String? kodeUjian,
+    required String? kodePengawasan,
+    required String mataKuliah,
+    required String judulUjian,
+    required int? durasiMenit,
+    required String status,
+    required List<Map<String, dynamic>> soalList,
+  }) async {
+    await _ensureBankSoalTables();
+    final db = await database;
+    final now = DateTime.now().toIso8601String();
+
+    final bankSoalData = {
+      'dosen_id': dosenId,
+      'pengampu_id': pengampuId,
+      'pengampu_label': pengampuLabel,
+      'remote_ujian_id': remoteUjianId,
+      'kode_ujian': kodeUjian,
+      'kode_pengawasan': kodePengawasan,
+      'mata_kuliah': mataKuliah,
+      'judul_ujian': judulUjian,
+      'durasi_menit': durasiMenit,
+      'status': status,
+      'updated_at': now,
+      if (id == null) 'created_at': now,
+    };
+
+    late int bankSoalId;
+    if (id != null) {
+      await db.update(
+        'bank_soal_lokal',
+        bankSoalData,
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      bankSoalId = id;
+    } else {
+      bankSoalId = await db.insert('bank_soal_lokal', bankSoalData);
+    }
+
+    // Delete old soal items
+    await db.delete(
+      'bank_soal_item_lokal',
+      where: 'bank_soal_id = ?',
+      whereArgs: [bankSoalId],
+    );
+
+    // Insert new soal items
+    for (int i = 0; i < soalList.length; i++) {
+      final soal = soalList[i];
+      await db.insert('bank_soal_item_lokal', {
+        'bank_soal_id': bankSoalId,
+        'urutan': i + 1,
+        'tipe_soal': soal['tipe_soal'],
+        'teks_soal': soal['teks_soal'],
+        'opsi_jawaban': soal['opsi_jawaban'] is String
+            ? soal['opsi_jawaban']
+            : jsonEncode(soal['opsi_jawaban']),
+        'kunci_jawaban': soal['kunci_jawaban'],
+        'poin': soal['poin'],
+        'catatan': soal['catatan'],
+      });
+    }
+
+    return bankSoalId;
+  }
+
+  Future<bool> updateBankSoalStatus(int id, String status) async {
+    await _ensureBankSoalTables();
+    final db = await database;
+
+    try {
+      await db.update(
+        'bank_soal_lokal',
+        {'status': status, 'updated_at': DateTime.now().toIso8601String()},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      return true;
+    } catch (e) {
+      debugPrint('LocalDbService.updateBankSoalStatus error: $e');
+      return false;
+    }
+  }
+
+  Future<void> clearAllLokalData() async {
+    final db = await database;
+    await db.delete('jawaban_lokal');
+    await db.delete('soal_lokal');
+    await db.delete('ujian_lokal');
+    await db.delete('bank_soal_item_lokal');
+    await db.delete('bank_soal_lokal');
   }
 }

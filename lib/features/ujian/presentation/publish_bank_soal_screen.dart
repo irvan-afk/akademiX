@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../view_models/dosen_ujian_view_model.dart';
 import '../../auth/view_models/auth_view_model.dart';
+import '../models/ujian_model.dart';
 import '../../../core/widgets/akademix_card.dart';
 import 'monitoring_ujian_screen.dart';
 
