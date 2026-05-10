@@ -10,6 +10,7 @@ enum SubmissionStatus { idle, loading, offlineSaved, success }
 
 class MahasiswaUjianViewModel extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
+  RealtimeChannel? _presenceChannel;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -39,6 +40,24 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   final Duration _durasiUjian = const Duration(hours: 2);
   Duration _timeRemaining = const Duration(hours: 2);
   String get timerString => _formatDuration(_timeRemaining);
+
+  // --- PRESENCE MONITORING ---
+  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim) {
+    if (_presenceChannel != null) return;
+    _presenceChannel = _supabase.channel('exam_monitoring_$ujianId');
+    _presenceChannel!.onPresenceSync((payload) {
+      // Dosen yang butuh list ini, mahasiswa hanya kirim status
+    }).subscribe((status, [error]) async {
+      if (status == 'SUBSCRIBED') {
+        await _presenceChannel!.track({'nama': namaMahasiswa, 'nim': nim, 'status': 'Online'});
+      }
+    });
+  }
+
+  void unsubscribePresence() {
+    _presenceChannel?.unsubscribe();
+    _presenceChannel = null;
+  }
 
   // --- LOGIKA JOIN & INISIALISASI SESI ---
   Future<UjianModel?> joinUjian(String code, int mahasiswaId) async {
@@ -78,6 +97,13 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
 
           _currentSesiId = newSesi['id'];
         }
+
+        // Simpan info Ujian ke Lokal (termasuk PIN)
+        await LocalDbService.instance.saveUjianLokal(resUjian);
+
+        // Pre-download soal
+        await downloadSoalLokal(_activeUjian!.id);
+
         return _activeUjian;
       }
       return null;
@@ -91,13 +117,9 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   }
 
   // --- LOGIKA AMBIL SOAL ---
-  Future<void> startUjian(int ujianId) async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<void> downloadSoalLokal(int ujianId) async {
     try {
       var dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
-
       if (dataLokal.isEmpty) {
         final response = await _supabase
             .from('soal')
@@ -105,14 +127,23 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
             .eq('ujian_id', ujianId);
 
         final remoteSoal = response as List;
-
         if (remoteSoal.isNotEmpty) {
           for (var s in remoteSoal) {
             await LocalDbService.instance.saveSoalLokal(s);
           }
-          dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
         }
       }
+    } catch (e) {
+      debugPrint("DEBUG ERROR DOWNLOAD SOAL: $e");
+    }
+  }
+
+  Future<void> startUjian(int ujianId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      var dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
 
       _daftarSoal = dataLokal.map((s) => SoalModel.fromJson(s)).toList();
       _stopwatch.reset();
@@ -208,6 +239,14 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
           .eq('id', _currentSesiId!);
 
       _status = SubmissionStatus.success;
+      
+      // BERSIHKAN STATE UI & SQLITE SETELAH SUKSES MENGIRIM
+      _activeUjian = null;
+      _currentSesiId = null;
+      _daftarSoal.clear();
+      _jawabanMahasiswa.clear();
+      await LocalDbService.instance.clearAllLokalData();
+
     } catch (e) {
       debugPrint("DEBUG ERROR SAAT SUBMIT: $e");
 
@@ -261,6 +300,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   void dispose() {
     _timer?.cancel();
     _stopwatch.stop();
+    unsubscribePresence();
     super.dispose();
   }
 }

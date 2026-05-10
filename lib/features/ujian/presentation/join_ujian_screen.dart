@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../view_models/mahasiswa_ujian_view_model.dart';
 // 1. IMPORT AuthViewModel untuk ambil ID Mahasiswa
 import '../../auth/view_models/auth_view_model.dart';
-// import 'sesi_ujian_screen.dart';
+import 'waiting_room_screen.dart';
 import '../../../core/widgets/curved_header.dart';
 import '../../../core/widgets/akademix_card.dart';
 
@@ -39,21 +39,24 @@ class _JoinUjianScreenState extends State<JoinUjianScreen> {
 
     if (mounted) {
       if (ujian != null) {
-        await vm.startUjian(ujian.id);
-
         // Tampilkan pesan sukses
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              "Soal berhasil diunduh! Silakan cek Dashboard untuk memulai.",
+              "Soal berhasil diunduh!",
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
         );
 
-        //  Kembali ke Dashboard (Pop)
-        Navigator.pop(context);
+        //  Beralih ke Waiting Room
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => WaitingRoomScreen(ujianId: ujian.id),
+          ),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../view_models/dosen_ujian_view_model.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../../../core/widgets/akademix_card.dart';
+import 'monitoring_ujian_screen.dart';
 
 class PublishBankSoalScreen extends StatefulWidget {
   const PublishBankSoalScreen({super.key});
@@ -95,7 +96,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
               itemCount: filteredUjian.length,
               itemBuilder: (context, index) {
                 final ujian = filteredUjian[index];
-                final isDraft = ujian.statusUjian == 'DRAFT';
+                final isDraft = ujian.statusUjian.name.toUpperCase() == 'DRAFT';
 
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 15),
@@ -169,11 +170,27 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
                                 ),
                               )
                             else
-                              const Text(
-                                "Terbit",
-                                style: TextStyle(
-                                  color: Colors.green,
-                                  fontWeight: FontWeight.bold,
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => MonitoringUjianScreen(
+                                        ujianId: ujian.id,
+                                        judulUjian: ujian.judulUjian,
+                                        pinMulai: ujian.pinMulai ?? '-',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.monitor_heart, color: Colors.green, size: 18),
+                                label: const Text(
+                                  "Monitoring",
+                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: Colors.green),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 ),
                               ),
                           ],
@@ -232,11 +249,12 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
         ujian.judulUjian,
         tokens['ujian']!,
         tokens['monitoring']!,
+        tokens['pin']!,
       );
     }
   }
 
-  void _showSuccessPopup(String judul, String tokenUjian, String tokenMonitor) {
+  void _showSuccessPopup(String judul, String tokenUjian, String tokenMonitor, String pinMulai) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -253,6 +271,8 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
             ),
             const SizedBox(height: 20),
             _buildTokenBox("KODE UJIAN", tokenUjian),
+            const SizedBox(height: 10),
+            _buildTokenBox("PIN OFFLINE", pinMulai),
             const SizedBox(height: 10),
             _buildTokenBox("KODE MONITORING", tokenMonitor),
             const SizedBox(height: 25),

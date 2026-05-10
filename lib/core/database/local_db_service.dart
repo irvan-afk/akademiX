@@ -20,7 +20,7 @@ class LocalDbService {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -33,7 +33,8 @@ class LocalDbService {
         judul_ujian TEXT,
         mata_kuliah TEXT,
         durasi INTEGER,
-        status_lokal TEXT
+        status_lokal TEXT,
+        pin_mulai TEXT
       )
     ''');
 
@@ -84,6 +85,33 @@ class LocalDbService {
     );
   }
 
+  Future<void> saveUjianLokal(Map<String, dynamic> ujianData) async {
+    final db = await database;
+    await db.insert(
+      'ujian_lokal',
+      {
+        'id': ujianData['id'],
+        'judul_ujian': ujianData['judul_ujian'],
+        'durasi': ujianData['durasi_menit'],
+        'pin_mulai': ujianData['pin_mulai'],
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<Map<String, dynamic>?> getUjianLokal(int ujianId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'ujian_lokal',
+      where: 'id = ?',
+      whereArgs: [ujianId],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    return null;
+  }
+
   Future<List<Map<String, dynamic>>> getSoalByUjian(int ujianId) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
@@ -116,5 +144,12 @@ class LocalDbService {
       where: 'sesi_pengerjaan_id = ?',
       whereArgs: [sesiId],
     );
+  }
+
+  Future<void> clearAllLokalData() async {
+    final db = await database;
+    await db.delete('jawaban_lokal');
+    await db.delete('soal_lokal');
+    await db.delete('ujian_lokal');
   }
 }

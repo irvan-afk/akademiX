@@ -11,6 +11,7 @@ class UjianModel {
   final UjianStatus statusUjian;
   final String? kodeUjian;
   final String? kodePengawasan;
+  final String? pinMulai;
   final List<SoalModel>? daftarSoal;
 
   UjianModel({
@@ -23,6 +24,7 @@ class UjianModel {
     required this.statusUjian,
     this.kodeUjian,
     this.kodePengawasan,
+    this.pinMulai,
     this.daftarSoal,
   });
 
@@ -41,6 +43,7 @@ class UjianModel {
       ),
       kodeUjian: json['kode_ujian'],
       kodePengawasan: json['kode_pengawasan'],
+      pinMulai: json['pin_mulai'],
       daftarSoal: json['soal'] != null
           ? (json['soal'] as List).map((i) => SoalModel.fromJson(i)).toList()
           : null,
