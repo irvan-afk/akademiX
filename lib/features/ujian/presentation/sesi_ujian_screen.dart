@@ -10,6 +10,9 @@ import '../data/jawaban_repository.dart';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:screen_protector/screen_protector.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/services.dart';
 import '../view_models/mahasiswa_ujian_view_model.dart';
 
 class UjianScreen extends StatefulWidget {
@@ -20,14 +23,138 @@ class UjianScreen extends StatefulWidget {
   State<UjianScreen> createState() => _UjianScreenState();
 }
 
-class _UjianScreenState extends State<UjianScreen> {
+class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
+  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  int _violationCount = 0;
+  bool _isWarningDialogShowing = false;
+  bool _isInternetDialogShowing = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _initSecurityFeatures();
+
     // Memulai ujian saat layar dibuka
     Future.microtask(
       () => context.read<MahasiswaUjianViewModel>().startUjian(widget.ujianId),
     );
+  }
+
+  Future<void> _initSecurityFeatures() async {
+    // 0. Bersihkan Clipboard di awal
+    await Clipboard.setData(const ClipboardData(text: ''));
+
+    // 1. Anti-Screenshot
+    await ScreenProtector.preventScreenshotOn();
+    await ScreenProtector.protectDataLeakageWithBlur(); // For iOS
+
+    // 2. Anti-Internet
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
+      if (results.contains(ConnectivityResult.mobile) ||
+          results.contains(ConnectivityResult.wifi)) {
+        _showInternetWarningDialog();
+      } else {
+        if (_isInternetDialogShowing && mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          _isInternetDialogShowing = false;
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _connectivitySubscription.cancel();
+    ScreenProtector.preventScreenshotOff();
+    ScreenProtector.protectDataLeakageWithBlurOff();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      Clipboard.setData(const ClipboardData(text: ''));
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _handleViolation();
+    }
+  }
+
+  void _handleViolation() {
+    _violationCount++;
+    if (_violationCount >= 3) {
+      context.read<MahasiswaUjianViewModel>().submitUjian();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/submission-result');
+      }
+    } else {
+      if (!_isWarningDialogShowing && mounted) {
+        _isWarningDialogShowing = true;
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => PopScope(
+            canPop: false,
+            child: AlertDialog(
+              title: const Text("Peringatan Pelanggaran!"),
+              content: Text(
+                "Anda terdeteksi keluar dari aplikasi ujian.\n\nPelanggaran ke-$_violationCount dari maksimal 3.\nJika mencapai 3x, ujian akan otomatis disubmit.",
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _isWarningDialogShowing = false;
+                  },
+                  child: const Text(
+                    "Mengerti",
+                    style: TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showInternetWarningDialog() {
+    if (!_isInternetDialogShowing && mounted) {
+      _isInternetDialogShowing = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            title: const Text("Koneksi Internet Terdeteksi!"),
+            content: const Text(
+              "Harap matikan WiFi atau Data Seluler Anda untuk melanjutkan ujian offline ini.",
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () async {
+                  final results = await Connectivity().checkConnectivity();
+                  if (!results.contains(ConnectivityResult.mobile) &&
+                      !results.contains(ConnectivityResult.wifi)) {
+                    if (mounted) {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      _isInternetDialogShowing = false;
+                    }
+                  }
+                },
+                child: const Text("Saya Sudah Mematikan Internet."),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 
   @override
