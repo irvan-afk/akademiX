@@ -20,7 +20,7 @@ class LocalDbService {
 
     final db = await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -36,7 +36,8 @@ class LocalDbService {
         judul_ujian TEXT,
         mata_kuliah TEXT,
         durasi INTEGER,
-        status_lokal TEXT
+        status_lokal TEXT,
+        pin_mulai TEXT
       )
     ''');
 
@@ -151,6 +152,29 @@ class LocalDbService {
     );
   }
 
+  Future<void> saveUjianLokal(Map<String, dynamic> ujianData) async {
+    final db = await database;
+    await db.insert('ujian_lokal', {
+      'id': ujianData['id'],
+      'judul_ujian': ujianData['judul_ujian'],
+      'durasi': ujianData['durasi_menit'],
+      'pin_mulai': ujianData['pin_mulai'],
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Map<String, dynamic>?> getUjianLokal(int ujianId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'ujian_lokal',
+      where: 'id = ?',
+      whereArgs: [ujianId],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first;
+    }
+    return null;
+  }
+
   Future<List<Map<String, dynamic>>> getSoalByUjian(int ujianId) async {
     await _ensureBankSoalTables();
     final db = await database;
@@ -186,149 +210,5 @@ class LocalDbService {
       where: 'sesi_pengerjaan_id = ?',
       whereArgs: [sesiId],
     );
-  }
-
-  Future<int> saveBankSoalDraft({
-    int? id,
-    int? dosenId,
-    int? pengampuId,
-    String? pengampuLabel,
-    int? remoteUjianId,
-    String? kodeUjian,
-    String? kodePengawasan,
-    required String mataKuliah,
-    required String judulUjian,
-    required int durasiMenit,
-    required String status,
-    required List<Map<String, dynamic>> soalList,
-  }) async {
-    await _ensureBankSoalTables();
-    final db = await database;
-
-    return db.transaction((txn) async {
-      final nowIso = DateTime.now().toIso8601String();
-      final bankSoalData = <String, dynamic>{
-        if (id != null) 'id': id,
-        'dosen_id': dosenId,
-        'pengampu_id': pengampuId,
-        'pengampu_label': pengampuLabel,
-        'remote_ujian_id': remoteUjianId,
-        'kode_ujian': kodeUjian,
-        'kode_pengawasan': kodePengawasan,
-        'mata_kuliah': mataKuliah,
-        'judul_ujian': judulUjian,
-        'durasi_menit': durasiMenit,
-        'status': status,
-        'created_at': nowIso,
-        'updated_at': nowIso,
-      };
-
-      final bankSoalId = await txn.insert(
-        'bank_soal_lokal',
-        bankSoalData,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-
-      await txn.delete(
-        'bank_soal_item_lokal',
-        where: 'bank_soal_id = ?',
-        whereArgs: [bankSoalId],
-      );
-
-      for (var index = 0; index < soalList.length; index++) {
-        final soal = Map<String, dynamic>.from(soalList[index]);
-        final opsiJawaban = soal['opsi_jawaban'];
-
-        await txn.insert('bank_soal_item_lokal', {
-          'bank_soal_id': bankSoalId,
-          'urutan': index + 1,
-          'tipe_soal': soal['tipe_soal'],
-          'teks_soal': soal['teks_soal'],
-          'opsi_jawaban': opsiJawaban == null ? null : jsonEncode(opsiJawaban),
-          'kunci_jawaban': soal['kunci_jawaban'],
-          'poin': soal['poin'],
-          'catatan': soal['catatan'],
-        });
-      }
-
-      return bankSoalId;
-    });
-  }
-
-  Future<Map<String, dynamic>?> getLatestBankSoalDraft({int? dosenId}) async {
-    await _ensureBankSoalTables();
-    final db = await database;
-
-    final bankSoalRows = await db.query(
-      'bank_soal_lokal',
-      where: dosenId == null ? null : 'dosen_id = ?',
-      whereArgs: dosenId == null ? null : [dosenId],
-      orderBy: 'updated_at DESC, id DESC',
-      limit: 1,
-    );
-
-    if (bankSoalRows.isEmpty) {
-      return null;
-    }
-
-    final bankSoal = Map<String, dynamic>.from(bankSoalRows.first);
-    final items = await db.query(
-      'bank_soal_item_lokal',
-      where: 'bank_soal_id = ?',
-      whereArgs: [bankSoal['id']],
-      orderBy: 'urutan ASC, id ASC',
-    );
-
-    return {'bank_soal': bankSoal, 'soal': items};
-  }
-
-  Future<Map<String, dynamic>?> getBankSoalDraftByRemoteUjianId(
-    int remoteUjianId,
-  ) async {
-    await _ensureBankSoalTables();
-    final db = await database;
-
-    final bankSoalRows = await db.query(
-      'bank_soal_lokal',
-      where: 'remote_ujian_id = ?',
-      whereArgs: [remoteUjianId],
-      orderBy: 'updated_at DESC, id DESC',
-      limit: 1,
-    );
-
-    if (bankSoalRows.isEmpty) return null;
-
-    final bankSoal = Map<String, dynamic>.from(bankSoalRows.first);
-    final items = await db.query(
-      'bank_soal_item_lokal',
-      where: 'bank_soal_id = ?',
-      whereArgs: [bankSoal['id']],
-      orderBy: 'urutan ASC, id ASC',
-    );
-
-    // decode opsi_jawaban for each item
-    final decodedItems = items.map((m) {
-      final map = Map<String, dynamic>.from(m);
-      if (map['opsi_jawaban'] != null && map['opsi_jawaban'] is String) {
-        try {
-          map['opsi_jawaban'] = jsonDecode(map['opsi_jawaban']);
-        } catch (_) {}
-      }
-      return map;
-    }).toList();
-
-    return {'bank_soal': bankSoal, 'soal': decodedItems};
-  }
-
-  Future<bool> updateBankSoalStatus(int id, String status) async {
-    await _ensureBankSoalTables();
-    final db = await database;
-    final result = await db.update(
-      'bank_soal_lokal',
-      {'status': status, 'updated_at': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    return result > 0;
   }
 }

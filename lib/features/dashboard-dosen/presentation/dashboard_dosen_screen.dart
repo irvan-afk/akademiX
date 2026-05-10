@@ -6,6 +6,8 @@ import 'package:akademix/core/constants/routes.dart';
 import '../../bank_soal/presentation/bank_soal_list_screen.dart';
 import '../../ujian/presentation/publish_bank_soal_screen.dart';
 import '../../ujian/presentation/pilih_ujian_view.dart';
+import '../../ujian/view_models/dosen_ujian_view_model.dart';
+import '../../ujian/presentation/monitoring_ujian_screen.dart';
 
 class DashboardDosenScreen extends StatefulWidget {
   const DashboardDosenScreen({super.key});
@@ -244,7 +246,7 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const CircleAvatar(
-                    radius: 28,
+                    radius: 25,
                     backgroundColor: Color(0xFFFFA000),
                     child: Icon(Icons.face, size: 18, color: Colors.white),
                   ),
@@ -301,7 +303,7 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () => _showJoinPengawasanDialog(context),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2962FF),
                     minimumSize: const Size(double.infinity, 44),
@@ -421,6 +423,91 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const PilihUjianView()),
+    );
+  }
+
+  void _showJoinPengawasanDialog(BuildContext context) {
+    final TextEditingController codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Ikut Mengawas"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Masukkan Kode Pengawasan dari dosen pembuat soal untuk ikut memantau sesi ujian ini.",
+              style: TextStyle(color: Colors.black54, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: codeController,
+              decoration: InputDecoration(
+                hintText: "Contoh: M-12345",
+                filled: true,
+                fillColor: const Color(0xFFF1F4FB),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Batal", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2962FF),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onPressed: () async {
+              final code = codeController.text.trim();
+              if (code.isEmpty) return;
+
+              Navigator.pop(dialogContext); // Tutup dialog
+
+              final vm = context.read<DosenUjianViewModel>();
+              final ujian = await vm.joinPengawasan(code);
+
+              if (context.mounted) {
+                if (ujian != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MonitoringUjianScreen(
+                        ujianId: ujian['id'],
+                        judulUjian: ujian['judul_ujian'],
+                        pinMulai: ujian['pin_mulai'] ?? '-',
+                      ),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        "Kode Pengawasan tidak ditemukan atau salah.",
+                      ),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text(
+              "Join Sesi",
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

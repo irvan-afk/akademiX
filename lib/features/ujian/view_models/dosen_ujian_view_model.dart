@@ -17,6 +17,11 @@ class DosenUjianViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> _rekapNilai = [];
   Map<String, dynamic> _statsRekap = {'avg': '0', 'max': 0, 'passRate': 0};
 
+  // --- STATE MONITORING ---
+  RealtimeChannel? _monitoringChannel;
+  List<Map<String, dynamic>> _onlineStudents = [];
+  List<Map<String, dynamic>> get onlineStudents => _onlineStudents;
+
   // --- GETTERS ---
   List<UjianModel> get allUjianDosen => _allUjianDosen;
   List<Map<String, dynamic>> get publishedExams => _publishedExams;
@@ -45,7 +50,8 @@ class DosenUjianViewModel extends ChangeNotifier {
       final response = await _supabase
           .from('UJIAN')
           .select('*, PENGAMPU!inner(dosen_id)')
-          .eq('PENGAMPU.dosen_id', dosenId);
+          .eq('PENGAMPU.dosen_id', dosenId)
+          .order('id', ascending: false);
 
       _allUjianDosen = (response as List)
           .map((e) => UjianModel.fromJson(e))
@@ -64,6 +70,7 @@ class DosenUjianViewModel extends ChangeNotifier {
 
     final tokenUjian = _generateRandomCode();
     final tokenMonitor = _generateRandomCode();
+    final pinMulai = (1000 + Random().nextInt(9000)).toString(); // 4 digit PIN
 
     try {
       await _supabase
@@ -71,11 +78,12 @@ class DosenUjianViewModel extends ChangeNotifier {
           .update({
             'kode_ujian': tokenUjian,
             'kode_pengawasan': tokenMonitor,
+            'pin_mulai': pinMulai,
             'status_ujian': 'PUBLISHED',
           })
           .eq('id', ujianId);
 
-      return {'ujian': tokenUjian, 'monitoring': tokenMonitor};
+      return {'ujian': tokenUjian, 'monitoring': tokenMonitor, 'pin': pinMulai};
     } catch (e) {
       debugPrint("Error Publish: $e");
       return null;
@@ -244,5 +252,62 @@ class DosenUjianViewModel extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // --- LOGIKA MONITORING REALTIME ---
+  Future<Map<String, dynamic>?> joinPengawasan(String kodePengawasan) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _supabase
+          .from('UJIAN')
+          .select('id, judul_ujian, pin_mulai')
+          .eq('kode_pengawasan', kodePengawasan)
+          .maybeSingle();
+      
+      return response;
+    } catch (e) {
+      debugPrint("Error Join Pengawasan: $e");
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void startMonitoring(int ujianId) {
+    if (_monitoringChannel != null) return;
+    _monitoringChannel = _supabase.channel('exam_monitoring_$ujianId');
+    _monitoringChannel!.onPresenceSync((payload) {
+      final newState = _monitoringChannel!.presenceState();
+      List<Map<String, dynamic>> currentOnline = [];
+      
+      for (final state in newState) {
+        for (final presence in state.presences) {
+          if (presence.payload != null) {
+             currentOnline.add({
+               'nama': presence.payload['nama'],
+               'nim': presence.payload['nim'],
+               'status': presence.payload['status'],
+             });
+          }
+        }
+      }
+      _onlineStudents = currentOnline;
+      notifyListeners();
+    }).subscribe();
+  }
+
+  void stopMonitoring() {
+    _monitoringChannel?.unsubscribe();
+    _monitoringChannel = null;
+    _onlineStudents.clear();
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    stopMonitoring();
+    super.dispose();
   }
 }

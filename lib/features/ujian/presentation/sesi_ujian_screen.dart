@@ -1,15 +1,15 @@
 import 'dart:async';
-import 'dart:math';
+// import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:akademix/features/auth/view_models/auth_view_model.dart';
-import '../models/soal_model.dart';
-import '../models/answer_tracker_model.dart';
-import '../data/jawaban_repository.dart';
+// import '../models/soal_model.dart';
+// import '../models/answer_tracker_model.dart';
+// import '../data/jawaban_repository.dart';
 
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+// import 'package:flutter/material.dart';
+// import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
@@ -24,11 +24,10 @@ class UjianScreen extends StatefulWidget {
 }
 
 class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
-  late StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  late StreamSubscription<dynamic> _connectivitySubscription;
   int _violationCount = 0;
   bool _isWarningDialogShowing = false;
   bool _isInternetDialogShowing = false;
-
   @override
   void initState() {
     super.initState();
@@ -53,10 +52,19 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
       List<ConnectivityResult> results,
     ) {
+      final vm = context.read<MahasiswaUjianViewModel>();
+      final authVm = context.read<AuthViewModel>();
+
       if (results.contains(ConnectivityResult.mobile) ||
           results.contains(ConnectivityResult.wifi)) {
         _showInternetWarningDialog();
+        vm.subscribeToPresence(
+          widget.ujianId,
+          authVm.userData?['nama'] ?? "Unknown",
+          authVm.userData?['nim'] ?? "000000",
+        );
       } else {
+        vm.unsubscribePresence();
         if (_isInternetDialogShowing && mounted) {
           Navigator.of(context, rootNavigator: true).pop();
           _isInternetDialogShowing = false;
@@ -381,6 +389,10 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                     ),
                   ),
             maxLines: 8,
+            enableInteractiveSelection: false,
+            contextMenuBuilder: (context, editableTextState) {
+              return const SizedBox.shrink();
+            },
             decoration: const InputDecoration(
               hintText: "Ketik jawaban Anda di sini...",
               border: InputBorder.none,
