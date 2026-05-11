@@ -170,38 +170,55 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
                                 ),
                               )
                             else
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          MonitoringUjianScreen(
-                                            ujianId: ujian.id,
-                                            judulUjian: ujian.judulUjian,
-                                            pinMulai: ujian.pinMulai ?? '-',
-                                          ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.info_outline, color: Colors.blue),
+                                    tooltip: "Info Kode",
+                                    onPressed: () {
+                                      _showSuccessPopup(
+                                        ujian.judulUjian,
+                                        ujian.kodeUjian ?? '-',
+                                        ujian.kodePengawasan ?? '-',
+                                        ujian.pinMulai ?? '-',
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 5),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              MonitoringUjianScreen(
+                                                ujianId: ujian.id,
+                                                judulUjian: ujian.judulUjian,
+                                                pinMulai: ujian.pinMulai ?? '-',
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.monitor_heart,
+                                      color: Colors.green,
+                                      size: 18,
                                     ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.monitor_heart,
-                                  color: Colors.green,
-                                  size: 18,
-                                ),
-                                label: const Text(
-                                  "Monitoring",
-                                  style: TextStyle(
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
+                                    label: const Text(
+                                      "Monitoring",
+                                      style: TextStyle(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Colors.green),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.green),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
+                                ],
                               ),
                           ],
                         ),

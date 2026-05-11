@@ -64,7 +64,24 @@ class _RekapNilaiViewState extends State<RekapNilaiView> {
               padding: const EdgeInsets.all(20),
               children: [
                 _buildSearchBar(),
-                const SizedBox(height: 25),
+                const SizedBox(height: 15),
+                SwitchListTile(
+                  title: const Text(
+                    "Publikasi Nilai ke Mahasiswa",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: const Text(
+                    "Mahasiswa dapat melihat hasil skor akhirnya",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  value: vm.isNilaiPublished,
+                  onChanged: (val) {
+                    vm.toggleTampilkanNilai(widget.ujianId, val);
+                  },
+                  activeColor: const Color(0xFF2962FF),
+                  contentPadding: EdgeInsets.zero,
+                ),
+                const SizedBox(height: 15),
                 const Text(
                   "STATISTIK SESI",
                   style: TextStyle(

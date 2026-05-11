@@ -16,6 +16,7 @@ class DosenUjianViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> _detailPengerjaan = [];
   List<Map<String, dynamic>> _rekapNilai = [];
   Map<String, dynamic> _statsRekap = {'avg': '0', 'max': 0, 'passRate': 0};
+  bool _isNilaiPublished = false;
 
   // --- STATE MONITORING ---
   RealtimeChannel? _monitoringChannel;
@@ -29,6 +30,7 @@ class DosenUjianViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> get detailPengerjaan => _detailPengerjaan;
   List<Map<String, dynamic>> get rekapNilai => _rekapNilai;
   Map<String, dynamic> get statsRekap => _statsRekap;
+  bool get isNilaiPublished => _isNilaiPublished;
 
   // --- FUNGSI UTILITAS ---
   String _generateRandomCode() {
@@ -197,6 +199,16 @@ class DosenUjianViewModel extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
     try {
+      // Ambil status tampilkan_nilai dari UJIAN
+      final ujianRes = await _supabase
+          .from('UJIAN')
+          .select('tampilkan_nilai')
+          .eq('id', ujianId)
+          .maybeSingle();
+      if (ujianRes != null) {
+        _isNilaiPublished = ujianRes['tampilkan_nilai'] ?? false;
+      }
+
       final response = await _supabase
           .from('SESI_PENGERJAAN')
           .select(
@@ -251,6 +263,19 @@ class DosenUjianViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> toggleTampilkanNilai(int ujianId, bool value) async {
+    try {
+      await _supabase
+          .from('UJIAN')
+          .update({'tampilkan_nilai': value})
+          .eq('id', ujianId);
+      _isNilaiPublished = value;
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error Toggle Tampilkan Nilai: $e");
     }
   }
 

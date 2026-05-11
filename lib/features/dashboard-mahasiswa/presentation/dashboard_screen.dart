@@ -18,6 +18,14 @@ class DashboardMahasiswaScreen extends StatefulWidget {
 class _DashboardMahasiswaScreenState extends State<DashboardMahasiswaScreen> {
   int _currentIndex = 1;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MahasiswaUjianViewModel>().checkOfflineSubmission();
+    });
+  }
+
   List<Widget> _buildPages(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
     final mahasiswaId = authVM.userData?['id'] as int? ?? 0;
@@ -183,7 +191,10 @@ class BerandaContent extends StatelessWidget {
               child: Column(
                 children: [
                   if (ujianVm.activeUjian != null)
-                    _buildPaketTerunduhCard(context, ujianVm.activeUjian!)
+                    if (ujianVm.status == SubmissionStatus.offlineSaved)
+                      _buildTungguSinkronCard(context, ujianVm)
+                    else
+                      _buildPaketTerunduhCard(context, ujianVm.activeUjian!)
                   else
                     _buildJoinCard(context),
                   const SizedBox(height: 30),
@@ -393,6 +404,98 @@ class BerandaContent extends StatelessWidget {
                   Icon(Icons.chevron_right),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTungguSinkronCard(BuildContext context, MahasiswaUjianViewModel vm) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "MENUNGGU SINKRONISASI",
+            style: TextStyle(
+              color: Colors.orange,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            (vm.activeUjian?.judulUjian ?? "UJIAN").toUpperCase(),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Jawaban tersimpan di perangkat. Tekan tombol di bawah saat Anda memiliki koneksi internet.",
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: ElevatedButton(
+              onPressed: () async {
+                await vm.submitUjian();
+                if (context.mounted && vm.status == SubmissionStatus.success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Berhasil disinkronkan ke server!"),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Masih gagal, pastikan internet Anda aktif."),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                elevation: 0,
+              ),
+              child: vm.status == SubmissionStatus.loading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "SINKRONKAN SEKARANG",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.sync),
+                      ],
+                    ),
             ),
           ),
         ],

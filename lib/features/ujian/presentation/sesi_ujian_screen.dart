@@ -93,41 +93,10 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   }
 
   void _handleViolation() {
-    _violationCount++;
-    if (_violationCount >= 3) {
-      context.read<MahasiswaUjianViewModel>().submitUjian();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/submission-result');
-      }
-    } else {
-      if (!_isWarningDialogShowing && mounted) {
-        _isWarningDialogShowing = true;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => PopScope(
-            canPop: false,
-            child: AlertDialog(
-              title: const Text("Peringatan Pelanggaran!"),
-              content: Text(
-                "Anda terdeteksi keluar dari aplikasi ujian.\n\nPelanggaran ke-$_violationCount dari maksimal 3.\nJika mencapai 3x, ujian akan otomatis disubmit.",
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _isWarningDialogShowing = false;
-                  },
-                  child: const Text(
-                    "Mengerti",
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
+    // Segera submit ujian jika menekan tombol home / keluar aplikasi
+    context.read<MahasiswaUjianViewModel>().submitUjian();
+    if (mounted) {
+      Navigator.pushReplacementNamed(context, '/submission-result');
     }
   }
 

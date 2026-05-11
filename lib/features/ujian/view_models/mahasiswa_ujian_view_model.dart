@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/ujian_model.dart';
 import '../models/soal_model.dart';
 import 'package:akademix/core/database/local_db_service.dart';
+import 'package:akademix/core/constants/app_enums.dart';
 
 // Status untuk mengontrol tampilan layar hasil (Offline vs Sukses)
 enum SubmissionStatus { idle, loading, offlineSaved, success }
@@ -41,6 +42,44 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   Duration _timeRemaining = const Duration(hours: 2);
   String get timerString => _formatDuration(_timeRemaining);
 
+  // --- OFFLINE SUBMISSION CHECK ---
+  Future<void> checkOfflineSubmission() async {
+    final db = await LocalDbService.instance.database;
+    final exams = await db.query('ujian_lokal');
+    if (exams.isNotEmpty) {
+      final exam = exams.first;
+      final answers = await db.query('jawaban_lokal');
+      if (answers.isNotEmpty) {
+        _activeUjian = UjianModel(
+           id: exam['id'] as int,
+           judulUjian: exam['judul_ujian'] as String,
+           pengampuId: 0,
+           waktuMulai: DateTime.now(),
+           waktuSelesai: DateTime.now(),
+           durasiMenit: exam['durasi'] as int,
+           statusUjian: UjianStatus.published,
+           pinMulai: exam['pin_mulai'] as String?,
+        );
+        _currentSesiId = answers.first['sesi_pengerjaan_id'] as int;
+        _status = SubmissionStatus.offlineSaved;
+        notifyListeners();
+      } else {
+        // Jika ada ujian tapi tidak ada jawaban, berarti sedang mengerjakan (offline resume).
+        _activeUjian = UjianModel(
+           id: exam['id'] as int,
+           judulUjian: exam['judul_ujian'] as String,
+           pengampuId: 0,
+           waktuMulai: DateTime.now(),
+           waktuSelesai: DateTime.now(),
+           durasiMenit: exam['durasi'] as int,
+           statusUjian: UjianStatus.published,
+           pinMulai: exam['pin_mulai'] as String?,
+        );
+        notifyListeners();
+      }
+    }
+  }
+
   // --- PRESENCE MONITORING ---
   void subscribeToPresence(int ujianId, String namaMahasiswa, String nim) {
     if (_presenceChannel != null) return;
@@ -77,12 +116,15 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
 
         final resSesi = await _supabase
             .from('SESI_PENGERJAAN')
-            .select('id')
+            .select('id, status_pengerjaan')
             .eq('ujian_id', _activeUjian!.id)
             .eq('mahasiswa_id', mahasiswaId)
             .maybeSingle();
 
         if (resSesi != null) {
+          if (resSesi['status_pengerjaan'] == 'SUBMITTED') {
+            throw Exception('UJIAN_SUDAH_DIKERJAKAN');
+          }
           _currentSesiId = resSesi['id'];
         } else {
           final newSesi = await _supabase
@@ -109,6 +151,9 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
       return null;
     } catch (e) {
       debugPrint("ERROR JOIN: $e");
+      if (e.toString().contains('UJIAN_SUDAH_DIKERJAKAN')) {
+        rethrow;
+      }
       return null;
     } finally {
       _isLoading = false;

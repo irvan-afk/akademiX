@@ -35,34 +35,57 @@ class _JoinUjianScreenState extends State<JoinUjianScreen> {
 
     //  fungsi join untuk mendapatkan data ujian dan sesi
     final vm = context.read<MahasiswaUjianViewModel>();
-    final ujian = await vm.joinUjian(code, mhsId);
+    
+    try {
+      final ujian = await vm.joinUjian(code, mhsId);
 
-    if (mounted) {
-      if (ujian != null) {
-        // Tampilkan pesan sukses
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Soal berhasil diunduh!"),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      if (mounted) {
+        if (ujian != null) {
+          // Tampilkan pesan sukses
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Soal berhasil diunduh!"),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
 
-        //  Beralih ke Waiting Room
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => WaitingRoomScreen(ujianId: ujian.id),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Kode ujian salah atau belum aktif!"),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+          //  Beralih ke Waiting Room
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => WaitingRoomScreen(ujianId: ujian.id),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Kode ujian salah atau belum aktif!"),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        if (e.toString().contains('UJIAN_SUDAH_DIKERJAKAN')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Anda sudah menyelesaikan ujian ini!"),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Terjadi kesalahan saat bergabung ke ujian."),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     }
   }

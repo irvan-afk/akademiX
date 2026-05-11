@@ -26,7 +26,7 @@ class _RiwayatMahasiswaViewState extends State<RiwayatMahasiswaView> {
     try {
       final response = await supabase
           .from('SESI_PENGERJAAN')
-          .select('*, UJIAN(judul_ujian, durasi_menit)')
+          .select('*, UJIAN(judul_ujian, durasi_menit, tampilkan_nilai), JAWABAN_MAHASISWA(nilai)')
           .eq('mahasiswa_id', widget.mahasiswaId)
           .order('submitted_at', ascending: false);
 
@@ -57,6 +57,14 @@ class _RiwayatMahasiswaViewState extends State<RiwayatMahasiswaView> {
             itemBuilder: (context, index) {
               final item = _riwayat[index];
               final ujian = item['UJIAN'] as Map<String, dynamic>?;
+              final tampilkanNilai = ujian?['tampilkan_nilai'] == true;
+
+              int totalSkor = 0;
+              if (item['JAWABAN_MAHASISWA'] != null) {
+                for (var j in item['JAWABAN_MAHASISWA']) {
+                  totalSkor += (j['nilai'] as num?)?.toInt() ?? 0;
+                }
+              }
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -81,11 +89,33 @@ class _RiwayatMahasiswaViewState extends State<RiwayatMahasiswaView> {
                     subtitle: Text(
                       "Selesai: ${item['submitted_at'] != null ? DateTime.parse(item['submitted_at']).toLocal().toString().substring(0, 16) : '-'}",
                     ),
-                    trailing: const Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
-                      size: 20,
-                    ),
+                    trailing: tampilkanNilai
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                "SKOR",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                "$totalSkor",
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2962FF),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 20,
+                          ),
                   ),
                 ),
               );
