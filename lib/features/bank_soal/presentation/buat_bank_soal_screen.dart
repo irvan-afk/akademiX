@@ -180,60 +180,12 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
               : SafeArea(
                   child: Column(
                     children: [
+                      _buildTopActionBar(vm),
                       Expanded(
                         child: ListView(
                           physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: vm.isLoading
-                                        ? null
-                                        : _handleSave,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF2962FF),
-                                      foregroundColor: Colors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    child: const Text('Simpan'),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed:
-                                        vm.isReadyToPublish && !vm.isLoading
-                                        ? _handlePublish
-                                        : null,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: vm.isReadyToPublish
-                                          ? const Color(0xFFE8F1FF)
-                                          : const Color(0xFFF1F4FB),
-                                      foregroundColor: vm.isReadyToPublish
-                                          ? const Color(0xFF2962FF)
-                                          : Colors.grey,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 14,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    child: const Text('Publish'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
                             _buildSectionTitle('INFORMASI UJIAN'),
                             const SizedBox(height: 10),
                             AkademixCard(
@@ -325,77 +277,9 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
                                   );
                                 },
                               ),
+                            const SizedBox(height: 12),
+                            _buildQuestionTypeActions(vm),
                           ],
-                        ),
-                      ),
-                      SafeArea(
-                        top: false,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: vm.draft.hasValidHeader
-                                      ? () async {
-                                          final question =
-                                              await _showQuestionForm(
-                                                context,
-                                                tipeSoal: 'pilihan_ganda',
-                                              );
-                                          if (question != null && mounted) {
-                                            vm.addQuestion(question);
-                                          }
-                                        }
-                                      : null,
-                                  icon: const Icon(
-                                    Icons.circle_outlined,
-                                    size: 18,
-                                  ),
-                                  label: const Text('Pilihan Ganda'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2962FF),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: vm.draft.hasValidHeader
-                                      ? () async {
-                                          final question =
-                                              await _showQuestionForm(
-                                                context,
-                                                tipeSoal: 'essai',
-                                              );
-                                          if (question != null && mounted) {
-                                            vm.addQuestion(question);
-                                          }
-                                        }
-                                      : null,
-                                  icon: const Icon(Icons.text_fields, size: 18),
-                                  label: const Text('Essay'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF9C4DFF),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                     ],
@@ -413,6 +297,143 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
         fontSize: 14,
         fontWeight: FontWeight.w800,
         letterSpacing: 0.2,
+      ),
+    );
+  }
+
+  Widget _buildQuestionTypeActions(BankSoalViewModel vm) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 2, 20, 18),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: vm.draft.hasValidHeader
+                    ? () async {
+                        final question = await _showQuestionForm(
+                          context,
+                          tipeSoal: 'pilihan_ganda',
+                        );
+                        if (question != null && mounted) {
+                          vm.addQuestion(question);
+                        }
+                      }
+                    : null,
+                icon: const Icon(Icons.circle_outlined, size: 18),
+                label: const Text('Pilihan Ganda'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2962FF),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: vm.draft.hasValidHeader
+                    ? () async {
+                        final question = await _showQuestionForm(
+                          context,
+                          tipeSoal: 'essai',
+                        );
+                        if (question != null && mounted) {
+                          vm.addQuestion(question);
+                        }
+                      }
+                    : null,
+                icon: const Icon(Icons.text_fields, size: 18),
+                label: const Text('Essay'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF9C4DFF),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopActionBar(BankSoalViewModel vm) {
+    final canPublish = vm.isReadyToPublish && !vm.isLoading;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(
+            color: const Color(0xFFE3E8F2).withValues(alpha: 0.9),
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: vm.isLoading ? null : _handleSave,
+                icon: const Icon(Icons.save_outlined, size: 16),
+                label: const Text('Simpan Draft'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2962FF),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(44),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: canPublish ? _handlePublish : null,
+                icon: const Icon(Icons.publish_outlined, size: 16),
+                label: const Text('Publish'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: canPublish
+                      ? const Color(0xFF2ECC71)
+                      : const Color(0xFFF1F4FB),
+                  foregroundColor: canPublish ? Colors.white : Colors.grey,
+                  minimumSize: const Size.fromHeight(44),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: canPublish
+                          ? const Color(0xFF2ECC71)
+                          : const Color(0xFFE3E8F2),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -517,11 +538,16 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
       margin: const EdgeInsets.only(top: 4, bottom: 4),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [Colors.white, const Color(0xFFF7FAFF).withValues(alpha: 1)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE3E8F2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -529,17 +555,17 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
       ),
       child: Column(
         children: [
-          Icon(Icons.quiz_outlined, size: 42, color: Colors.grey.shade400),
+          Icon(Icons.quiz_outlined, size: 44, color: Colors.grey.shade400),
           const SizedBox(height: 10),
           const Text(
             'Belum ada soal ditambahkan',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
           ),
           const SizedBox(height: 6),
           const Text(
             'Tap tombol Pilihan Ganda atau Essay di bawah untuk mulai membuat soal.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54, fontSize: 12),
+            style: TextStyle(color: Colors.black54, fontSize: 12, height: 1.4),
           ),
         ],
       ),
@@ -616,11 +642,11 @@ class _BankSoalItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 30,
+                height: 30,
                 decoration: const BoxDecoration(
                   color: Color(0xFF111827),
                   shape: BoxShape.circle,
@@ -639,7 +665,7 @@ class _BankSoalItemCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
-                  vertical: 4,
+                  vertical: 5,
                 ),
                 decoration: BoxDecoration(
                   color: question.isPilihanGanda
@@ -685,7 +711,7 @@ class _BankSoalItemCard extends StatelessWidget {
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              height: 1.4,
+              height: 1.45,
             ),
           ),
           const SizedBox(height: 12),
@@ -853,32 +879,81 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                   ),
                   const SizedBox(height: 18),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        isPilihanGanda
-                            ? 'Tambah Pilihan Ganda'
-                            : 'Tambah Essay',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isPilihanGanda
+                                  ? 'Tambah Pilihan Ganda'
+                                  : 'Tambah Essay',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Isi detail soal lalu simpan ke draft bank soal.',
+                              style: TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const Spacer(),
-                      DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedPoint,
-                          items: _pointOptions
-                              .map(
-                                (value) => DropdownMenuItem(
-                                  value: value.toString(),
-                                  child: Text('$value poin'),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            if (value == null) return;
-                            setState(() => _selectedPoint = value);
-                          },
+                      const SizedBox(width: 10),
+                      SizedBox(
+                        width: 128,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: const Color(0xFFE3E8F2)),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedPoint,
+                              isDense: true,
+                              isExpanded: true,
+                              items: _pointOptions
+                                  .map(
+                                    (value) => DropdownMenuItem(
+                                      value: value.toString(),
+                                      child: Text(
+                                        '$value poin',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                              selectedItemBuilder: (context) {
+                                return _pointOptions
+                                    .map(
+                                      (value) => Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          '$value poin',
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    )
+                                    .toList();
+                              },
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() => _selectedPoint = value);
+                              },
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -907,6 +982,7 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                     const SizedBox(height: 6),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedAnswer,
+                      isExpanded: true,
                       decoration: InputDecoration(
                         labelText: 'Kunci Jawaban',
                         filled: true,
