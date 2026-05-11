@@ -151,7 +151,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             _buildBadge(
-                              isDraft ? 'DRAFT' : 'Terbit',
+                              isDraft ? 'DRAFT' : 'PUBLISHED',
                               isDraft ? Colors.orange : Colors.green,
                             ),
                             if (isDraft)

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/widgets/akademix_card.dart';
@@ -798,6 +799,7 @@ class _QuestionFormSheet extends StatefulWidget {
 class _QuestionFormSheetState extends State<_QuestionFormSheet> {
   late final TextEditingController _questionController;
   late final TextEditingController _catatanController;
+  late final TextEditingController _pointController;
   late final Map<String, TextEditingController> _optionControllers;
   late String _selectedPoint;
   late String _selectedAnswer;
@@ -822,6 +824,9 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
     final initial = widget.initialQuestion;
     _questionController = TextEditingController(text: initial?.teksSoal ?? '');
     _catatanController = TextEditingController(text: initial?.catatan ?? '');
+    _pointController = TextEditingController(
+      text: (initial?.poin ?? 5).toString(),
+    );
     _optionControllers = {
       'A': TextEditingController(text: initial?.opsiJawaban['A'] ?? ''),
       'B': TextEditingController(text: initial?.opsiJawaban['B'] ?? ''),
@@ -839,6 +844,7 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
   void dispose() {
     _questionController.dispose();
     _catatanController.dispose();
+    _pointController.dispose();
     for (final controller in _optionControllers.values) {
       controller.dispose();
     }
@@ -911,48 +917,92 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                         width: 128,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
+                            horizontal: 8,
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(color: const Color(0xFFE3E8F2)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedPoint,
+                          child: TextField(
+                            controller: _pointController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Poin',
+                              suffixText: 'poin',
+                              suffixStyle: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black54,
+                              ),
                               isDense: true,
-                              isExpanded: true,
-                              items: _pointOptions
-                                  .map(
-                                    (value) => DropdownMenuItem(
-                                      value: value.toString(),
-                                      child: Text(
-                                        '$value poin',
-                                        overflow: TextOverflow.ellipsis,
+                              suffixIcon: Builder(
+                                builder: (ctx) {
+                                  return GestureDetector(
+                                    onTap: () async {
+                                      final RenderBox box =
+                                          ctx.findRenderObject() as RenderBox;
+                                      final Offset offset = box.localToGlobal(
+                                        Offset.zero,
+                                      );
+                                      final selected = await showMenu<String>(
+                                        context: ctx,
+                                        position: RelativeRect.fromLTRB(
+                                          offset.dx,
+                                          offset.dy + box.size.height,
+                                          offset.dx + box.size.width,
+                                          offset.dy,
+                                        ),
+                                        items: _pointOptions
+                                            .map(
+                                              (v) => PopupMenuItem<String>(
+                                                value: v.toString(),
+                                                child: Text('$v poin'),
+                                              ),
+                                            )
+                                            .toList(),
+                                      );
+                                      if (selected != null) {
+                                        setState(() {
+                                          _selectedPoint = selected;
+                                          _pointController.text = selected;
+                                        });
+                                      }
+                                    },
+                                    child: const Padding(
+                                      padding: EdgeInsets.only(right: 8.0),
+                                      child: Icon(
+                                        Icons.arrow_drop_down,
+                                        size: 20,
                                       ),
                                     ),
-                                  )
-                                  .toList(),
-                              selectedItemBuilder: (context) {
-                                return _pointOptions
-                                    .map(
-                                      (value) => Align(
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          '$value poin',
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    )
-                                    .toList();
-                              },
-                              onChanged: (value) {
-                                if (value == null) return;
-                                setState(() => _selectedPoint = value);
-                              },
+                                  );
+                                },
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 8,
+                              ),
                             ),
+                            onChanged: (v) =>
+                                setState(() => _selectedPoint = v),
                           ),
                         ),
                       ),
@@ -983,10 +1033,22 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
                     DropdownButtonFormField<String>(
                       initialValue: _selectedAnswer,
                       isExpanded: true,
+                      icon: const Icon(Icons.keyboard_arrow_down_outlined),
+                      iconSize: 22,
+                      dropdownColor: Colors.white,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
                       decoration: InputDecoration(
                         labelText: 'Kunci Jawaban',
                         filled: true,
                         fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
                           borderSide: const BorderSide(
