@@ -55,7 +55,7 @@ class _BankSoalListScreenState extends State<BankSoalListScreen> {
       MaterialPageRoute(
         builder: (context) => BuatBankSoalScreen(
           startFresh: startFresh,
-          remoteUjianId: remoteUjianId,
+          idremoteUjian: remoteUjianId,
         ),
       ),
     );
