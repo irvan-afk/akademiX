@@ -684,7 +684,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
               }
             },
             child: const Text(
-              "Ya, Kirim",
+              "Ya, kirim",
               style: TextStyle(color: Colors.white),
             ),
           ),
