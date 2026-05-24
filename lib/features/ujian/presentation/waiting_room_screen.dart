@@ -70,9 +70,11 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
     }
   }
 
-  void _verifikasiPin() {
+  void _verifikasiPin() async {
     final pinInput = _pinController.text.trim();
     if (pinInput == _pinBenar) {
+      await LocalDbService.instance.updateUjianStatusLokal(widget.ujianId, 'ACTIVE');
+      if (!mounted) return;
       // Pindah ke UjianScreen
       Navigator.pushReplacement(
         context,

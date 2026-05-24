@@ -5,6 +5,7 @@ import 'package:akademix/core/constants/routes.dart';
 import 'package:akademix/features/auth/presentation/profile_screen.dart';
 import '../../ujian/presentation/join_ujian_screen.dart';
 import '../../ujian/presentation/riwayat_mahasiswa_view.dart';
+import '../../ujian/presentation/waiting_room_screen.dart';
 import 'package:akademix/features/ujian/view_models/mahasiswa_ujian_view_model.dart';
 
 class DashboardMahasiswaScreen extends StatefulWidget {
@@ -383,7 +384,16 @@ class BerandaContent extends StatelessWidget {
             height: 55,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/ujian', arguments: ujian.id);
+                if (ujian.statusLokal == 'WAITING') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WaitingRoomScreen(ujianId: ujian.id),
+                    ),
+                  );
+                } else {
+                  Navigator.pushNamed(context, '/ujian', arguments: ujian.id);
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2962FF),

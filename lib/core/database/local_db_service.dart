@@ -162,6 +162,7 @@ class LocalDbService {
       'judul_ujian': ujianData['judul_ujian'],
       'durasi': ujianData['durasi_menit'],
       'pin_mulai': ujianData['pin_mulai'],
+      'status_lokal': ujianData['status_lokal'] ?? 'WAITING',
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -176,6 +177,16 @@ class LocalDbService {
       return maps.first;
     }
     return null;
+  }
+
+  Future<void> updateUjianStatusLokal(int ujianId, String status) async {
+    final db = await database;
+    await db.update(
+      'ujian_lokal',
+      {'status_lokal': status},
+      where: 'id = ?',
+      whereArgs: [ujianId],
+    );
   }
 
   Future<List<Map<String, dynamic>>> getSoalByUjian(int ujianId) async {

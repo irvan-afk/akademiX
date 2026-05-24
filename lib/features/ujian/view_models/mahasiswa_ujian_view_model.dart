@@ -59,6 +59,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
            durasiMenit: exam['durasi'] as int,
            statusUjian: UjianStatus.published,
            pinMulai: exam['pin_mulai'] as String?,
+           statusLokal: exam['status_lokal'] as String? ?? 'ACTIVE',
         );
         _currentSesiId = answers.first['sesi_pengerjaan_id'] as int;
         _status = SubmissionStatus.offlineSaved;
@@ -74,6 +75,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
            durasiMenit: exam['durasi'] as int,
            statusUjian: UjianStatus.published,
            pinMulai: exam['pin_mulai'] as String?,
+           statusLokal: exam['status_lokal'] as String? ?? 'WAITING',
         );
         notifyListeners();
       }
@@ -141,7 +143,13 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         }
 
         // Simpan info Ujian ke Lokal (termasuk PIN)
-        await LocalDbService.instance.saveUjianLokal(resUjian);
+        await LocalDbService.instance.saveUjianLokal({
+          'id': _activeUjian!.id,
+          'judul_ujian': _activeUjian!.judulUjian,
+          'durasi_menit': _activeUjian!.durasiMenit,
+          'pin_mulai': _activeUjian!.pinMulai,
+          'status_lokal': 'WAITING',
+        });
 
         // Pre-download soal
         await downloadSoalLokal(_activeUjian!.id);
