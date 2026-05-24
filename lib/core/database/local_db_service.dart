@@ -92,6 +92,7 @@ class LocalDbService {
         mata_kuliah TEXT,
         judul_ujian TEXT,
         durasi_menit INTEGER,
+        waktu_mulai TEXT,
         status TEXT,
         created_at TEXT,
         updated_at TEXT
@@ -134,6 +135,7 @@ class LocalDbService {
       'ALTER TABLE bank_soal_lokal ADD COLUMN kode_pengawasan TEXT',
     );
     await addColumn('ALTER TABLE bank_soal_lokal ADD COLUMN pin_mulai TEXT');
+    await addColumn('ALTER TABLE bank_soal_lokal ADD COLUMN waktu_mulai TEXT');
   }
 
   Future<void> _ensureBankSoalTables() async {
@@ -299,6 +301,7 @@ class LocalDbService {
     required String mataKuliah,
     required String judulUjian,
     required int? durasiMenit,
+    required DateTime? waktuMulai,
     required String status,
     required List<Map<String, dynamic>> soalList,
   }) async {
@@ -317,6 +320,7 @@ class LocalDbService {
       'mata_kuliah': mataKuliah,
       'judul_ujian': judulUjian,
       'durasi_menit': durasiMenit,
+      'waktu_mulai': waktuMulai?.toUtc().toIso8601String(),
       'status': status,
       'updated_at': now,
       if (id == null) 'created_at': now,

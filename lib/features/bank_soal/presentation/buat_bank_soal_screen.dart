@@ -28,6 +28,10 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
       TextEditingController();
   final TextEditingController _judulUjianController = TextEditingController();
   final TextEditingController _durasiController = TextEditingController();
+  final TextEditingController _waktuMulaiController = TextEditingController();
+
+  int? _selectedPengampuId;
+  DateTime? _waktuMulai;
 
   void _syncHeaderToViewModel() {
     if (!mounted) return;
@@ -37,18 +41,13 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     final dosenId = authVm.userData?['id'] as int?;
     final pengampuText = _kelasPengampuController.text.trim();
 
-    // Use the first pengampu option if available (for dosen's own pengampu)
-    int? pengampuId;
-    if (vm.pengampuOptions.isNotEmpty) {
-      pengampuId = vm.pengampuOptions.first.id;
-    }
-
     vm.setHeader(
-      pengampuId: pengampuId,
+      pengampuId: _selectedPengampuId,
       pengampuLabel: pengampuText.isEmpty ? null : pengampuText,
       mataKuliah: _mataKuliahController.text.trim(),
       judulUjian: _judulUjianController.text.trim(),
       durasiMenit: int.tryParse(_durasiController.text.trim()) ?? 0,
+      waktuMulai: _waktuMulai,
       dosenId: dosenId,
     );
   }
@@ -71,10 +70,12 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     _kelasPengampuController.removeListener(_syncHeaderToViewModel);
     _judulUjianController.removeListener(_syncHeaderToViewModel);
     _durasiController.removeListener(_syncHeaderToViewModel);
+    _waktuMulaiController.removeListener(_syncHeaderToViewModel);
     _mataKuliahController.dispose();
     _kelasPengampuController.dispose();
     _judulUjianController.dispose();
     _durasiController.dispose();
+    _waktuMulaiController.dispose();
     super.dispose();
   }
 
@@ -84,6 +85,15 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     _kelasPengampuController.text = draft.pengampuLabel ?? '';
     _judulUjianController.text = draft.judulUjian;
     _durasiController.text = draft.durasiMenit.toString();
+    _waktuMulai = draft.waktuMulai;
+    if (_waktuMulai != null) {
+      _waktuMulaiController.text = 
+          "${_waktuMulai!.year.toString().padLeft(4, '0')}-${_waktuMulai!.month.toString().padLeft(2, '0')}-${_waktuMulai!.day.toString().padLeft(2, '0')} ${_waktuMulai!.hour.toString().padLeft(2, '0')}:${_waktuMulai!.minute.toString().padLeft(2, '0')}";
+    } else {
+      _waktuMulaiController.text = "";
+    }
+    
+    _selectedPengampuId = draft.pengampuId;
   }
 
   Future<void> _loadInitialData() async {
@@ -196,15 +206,15 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
                                 children: [
                                   _buildFieldLabel('Mata Kuliah'),
                                   const SizedBox(height: 6),
-                                  _buildInputField(
-                                    controller: _mataKuliahController,
-                                    hintText:
-                                        'Contoh: Basis Data, Web Programming',
-                                  ),
+                                  _buildMataKuliahDropdown(vm),
                                   const SizedBox(height: 14),
                                   _buildFieldLabel('Kelas / Pengampu'),
                                   const SizedBox(height: 6),
                                   _buildPengampuField(vm),
+                                  const SizedBox(height: 14),
+                                  _buildFieldLabel('Tanggal & Waktu Ujian'),
+                                  const SizedBox(height: 6),
+                                  _buildWaktuMulaiField(context),
                                   const SizedBox(height: 14),
                                   _buildFieldLabel('Judul Ujian'),
                                   const SizedBox(height: 6),
@@ -492,6 +502,118 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
       controller: _kelasPengampuController,
       hintText: 'Ketik kelas / pengampu',
       prefixIcon: const Icon(Icons.class_outlined, size: 18),
+      readOnly: true,
+    );
+  }
+
+  Widget _buildMataKuliahDropdown(BankSoalViewModel vm) {
+    if (vm.pengampuOptions.isEmpty) {
+      return _buildInputField(
+        controller: _mataKuliahController,
+        hintText: 'Tidak ada mata kuliah tersedia',
+        readOnly: true,
+      );
+    }
+    
+    // Pastikan _selectedPengampuId valid dalam opsi, jika tidak set null
+    if (_selectedPengampuId != null && 
+        !vm.pengampuOptions.any((o) => o.id == _selectedPengampuId)) {
+      _selectedPengampuId = null;
+    }
+
+    return DropdownButtonFormField<int>(
+      value: _selectedPengampuId,
+      hint: const Text('Pilih Mata Kuliah'),
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE3E8F2)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE3E8F2)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFF2962FF), width: 1.4),
+        ),
+      ),
+      items: vm.pengampuOptions.map((option) {
+        // Ambil nama matkul dari label (sebelum •)
+        final parts = option.label.split(' • ');
+        final matkulName = parts.isNotEmpty ? parts[0] : option.label;
+        final kelasName = parts.length > 1 ? parts.sublist(1).join(' • ') : '';
+        
+        return DropdownMenuItem<int>(
+          value: option.id,
+          child: Text(
+            '$matkulName ($kelasName)',
+            style: const TextStyle(fontSize: 14),
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }).toList(),
+      onChanged: (val) {
+        if (val == null) return;
+        setState(() {
+          _selectedPengampuId = val;
+          final opt = vm.pengampuOptions.firstWhere((o) => o.id == val);
+          final parts = opt.label.split(' • ');
+          final matkulName = parts.isNotEmpty ? parts[0] : opt.label;
+          final kelasName = parts.length > 1 ? parts.sublist(1).join(' • ') : '';
+          
+          _mataKuliahController.text = matkulName;
+          _kelasPengampuController.text = kelasName;
+          
+          // User request: Tambah angkatan. Kita tau bahwa label memang sudah diset 
+          // ada angkatannya di view_model (contoh: 'Kelas 1A • Angkatan 2023').
+          // Splitter di atas sudah menghandle sublist(1).join(' • ').
+        });
+        _syncHeaderToViewModel();
+      },
+    );
+  }
+
+  Widget _buildWaktuMulaiField(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: _waktuMulai ?? DateTime.now(),
+          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (date != null && mounted) {
+          final time = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay.fromDateTime(_waktuMulai ?? DateTime.now()),
+          );
+          if (time != null && mounted) {
+            setState(() {
+              _waktuMulai = DateTime(
+                date.year,
+                date.month,
+                date.day,
+                time.hour,
+                time.minute,
+              );
+              _waktuMulaiController.text = 
+                  "${_waktuMulai!.year.toString().padLeft(4, '0')}-${_waktuMulai!.month.toString().padLeft(2, '0')}-${_waktuMulai!.day.toString().padLeft(2, '0')} ${_waktuMulai!.hour.toString().padLeft(2, '0')}:${_waktuMulai!.minute.toString().padLeft(2, '0')}";
+            });
+            _syncHeaderToViewModel();
+          }
+        }
+      },
+      child: IgnorePointer(
+        child: _buildInputField(
+          controller: _waktuMulaiController,
+          hintText: 'Pilih Tanggal & Waktu',
+          prefixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+        ),
+      ),
     );
   }
 

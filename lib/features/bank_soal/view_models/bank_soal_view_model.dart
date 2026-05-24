@@ -47,14 +47,15 @@ class BankSoalViewModel extends ChangeNotifier {
           ].whereType<String>().where((v) => v.isNotEmpty).join(' • ')
         : 'Kelas ${item['kelas_id'] ?? '-'}';
 
-    return 'MK ${item['mata_kuliah_id'] ?? '-'} • $kelasLabel';
+    final namaMk = item['MATA_KULIAH']?['nama'] ?? 'MK ${item['mata_kuliah_id']}';
+    return '$namaMk • $kelasLabel';
   }
 
   Future<void> loadPengampuForDosen(int dosenId) async {
     try {
       final response = await _supabase
           .from('PENGAMPU')
-          .select('id, mata_kuliah_id, kelas_id, KELAS(nama, angkatan)')
+          .select('id, mata_kuliah_id, kelas_id, KELAS(nama, angkatan), MATA_KULIAH(nama)')
           .eq('dosen_id', dosenId)
           .order('id', ascending: false);
 
@@ -146,6 +147,7 @@ class BankSoalViewModel extends ChangeNotifier {
     required String mataKuliah,
     required String judulUjian,
     required int durasiMenit,
+    DateTime? waktuMulai,
     int? dosenId,
   }) {
     _draft = _draft.copyWith(
@@ -155,6 +157,7 @@ class BankSoalViewModel extends ChangeNotifier {
       mataKuliah: mataKuliah,
       judulUjian: judulUjian,
       durasiMenit: durasiMenit,
+      waktuMulai: waktuMulai ?? _draft.waktuMulai,
       updatedAt: DateTime.now(),
     );
     notifyListeners();
@@ -213,6 +216,7 @@ class BankSoalViewModel extends ChangeNotifier {
         mataKuliah: _draft.mataKuliah,
         judulUjian: _draft.judulUjian,
         durasiMenit: _draft.durasiMenit,
+        waktuMulai: _draft.waktuMulai,
         status: 'draft',
         soalList: _draft.toQuestionMaps(),
       );
@@ -244,6 +248,7 @@ class BankSoalViewModel extends ChangeNotifier {
           mataKuliah: _draft.mataKuliah,
           judulUjian: _draft.judulUjian,
           durasiMenit: _draft.durasiMenit,
+          waktuMulai: _draft.waktuMulai,
           status: 'draft',
           soalList: _draft.toQuestionMaps(),
         );
@@ -284,6 +289,7 @@ class BankSoalViewModel extends ChangeNotifier {
         mataKuliah: _draft.mataKuliah,
         judulUjian: _draft.judulUjian,
         durasiMenit: _draft.durasiMenit,
+        waktuMulai: _draft.waktuMulai,
         status: 'published',
         soalList: _draft.toQuestionMaps(),
       );
@@ -329,8 +335,8 @@ class BankSoalViewModel extends ChangeNotifier {
     }
 
     try {
-      final now = DateTime.now();
-      final selesai = now.add(Duration(minutes: _draft.durasiMenit));
+      final waktuMulai = _draft.waktuMulai ?? DateTime.now();
+      final waktuSelesai = waktuMulai.add(Duration(minutes: _draft.durasiMenit));
 
       int? ujianId = _draft.remoteUjianId;
 
@@ -340,8 +346,8 @@ class BankSoalViewModel extends ChangeNotifier {
             .insert({
               'pengampu_id': _draft.pengampuId,
               'judul_ujian': _draft.judulUjian,
-              'waktu_mulai': now.toIso8601String(),
-              'waktu_selesai': selesai.toIso8601String(),
+              'waktu_mulai': waktuMulai.toUtc().toIso8601String(),
+              'waktu_selesai': waktuSelesai.toUtc().toIso8601String(),
               'durasi_menit': _draft.durasiMenit,
               'status_ujian': publish ? 'PUBLISHED' : 'DRAFT',
               'kode_ujian': publish ? _generateRandomCode() : null,
@@ -362,8 +368,8 @@ class BankSoalViewModel extends ChangeNotifier {
         final payload = <String, dynamic>{
           'pengampu_id': _draft.pengampuId,
           'judul_ujian': _draft.judulUjian,
-          'waktu_mulai': now.toIso8601String(),
-          'waktu_selesai': selesai.toIso8601String(),
+          'waktu_mulai': waktuMulai.toUtc().toIso8601String(),
+          'waktu_selesai': waktuSelesai.toUtc().toIso8601String(),
           'durasi_menit': _draft.durasiMenit,
           'status_ujian': publish ? 'PUBLISHED' : 'DRAFT',
           'kode_ujian': publish

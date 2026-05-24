@@ -54,8 +54,8 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
            id: exam['id'] as int,
            judulUjian: exam['judul_ujian'] as String,
            pengampuId: 0,
-           waktuMulai: DateTime.now(),
-           waktuSelesai: DateTime.now(),
+           waktuMulai: exam['waktu_mulai'] != null ? DateTime.parse(exam['waktu_mulai'] as String) : DateTime.now(),
+           waktuSelesai: exam['waktu_selesai'] != null ? DateTime.parse(exam['waktu_selesai'] as String) : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
            durasiMenit: exam['durasi'] as int,
            statusUjian: UjianStatus.published,
            pinMulai: exam['pin_mulai'] as String?,
@@ -70,8 +70,8 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
            id: exam['id'] as int,
            judulUjian: exam['judul_ujian'] as String,
            pengampuId: 0,
-           waktuMulai: DateTime.now(),
-           waktuSelesai: DateTime.now(),
+           waktuMulai: exam['waktu_mulai'] != null ? DateTime.parse(exam['waktu_mulai'] as String) : DateTime.now(),
+           waktuSelesai: exam['waktu_selesai'] != null ? DateTime.parse(exam['waktu_selesai'] as String) : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
            durasiMenit: exam['durasi'] as int,
            statusUjian: UjianStatus.published,
            pinMulai: exam['pin_mulai'] as String?,
@@ -162,6 +162,14 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
       if (resUjian != null) {
         _activeUjian = UjianModel.fromJson(resUjian);
 
+        final now = DateTime.now();
+        if (now.isBefore(_activeUjian!.waktuMulai)) {
+          throw Exception('BELUM_WAKTUNYA (Sekarang: $now, Jadwal: ${_activeUjian!.waktuMulai})');
+        }
+        if (now.isAfter(_activeUjian!.waktuSelesai)) {
+          throw Exception('WAKTU_HABIS');
+        }
+
         final resSesi = await _supabase
             .from('SESI_PENGERJAAN')
             .select('id, status_pengerjaan')
@@ -193,6 +201,8 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
           'id': _activeUjian!.id,
           'judul_ujian': _activeUjian!.judulUjian,
           'durasi_menit': _activeUjian!.durasiMenit,
+          'waktu_mulai': _activeUjian!.waktuMulai.toUtc().toIso8601String(),
+          'waktu_selesai': _activeUjian!.waktuSelesai.toUtc().toIso8601String(),
           'pin_mulai': _activeUjian!.pinMulai,
           'status_lokal': 'WAITING',
         });
@@ -206,6 +216,12 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("ERROR JOIN: $e");
       if (e.toString().contains('UJIAN_SUDAH_DIKERJAKAN')) {
+        rethrow;
+      }
+      if (e.toString().contains('BELUM_WAKTUNYA')) {
+        rethrow;
+      }
+      if (e.toString().contains('WAKTU_HABIS')) {
         rethrow;
       }
       return null;
@@ -245,6 +261,20 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
       var dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
 
       _daftarSoal = dataLokal.map((s) => SoalModel.fromJson(s)).toList();
+      
+      // Calculate dynamic duration
+      if (_activeUjian != null) {
+         final diff = _activeUjian!.waktuSelesai.difference(DateTime.now());
+         if (diff.isNegative) {
+             _timeRemaining = Duration.zero;
+         } else {
+             final maxDuration = Duration(minutes: _activeUjian!.durasiMenit);
+             _timeRemaining = diff < maxDuration ? diff : maxDuration;
+         }
+      } else {
+         _timeRemaining = const Duration(hours: 2);
+      }
+
       _stopwatch.reset();
       _stopwatch.start();
       _startTimer();
@@ -373,12 +403,17 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   }
 
   // --- KONTROL UI & HELPER ---
+  // Menggunakan _timeRemaining sebagai durasi asli (start time)
+  // Jadi setiap detik, kurangi 1 detik
+  Duration _initialDuration = Duration.zero;
+
   void _startTimer() {
+    _initialDuration = _timeRemaining;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final elapsed = _stopwatch.elapsed;
-      if (elapsed < _durasiUjian) {
-        _timeRemaining = _durasiUjian - elapsed;
+      if (elapsed < _initialDuration) {
+        _timeRemaining = _initialDuration - elapsed;
         notifyListeners();
       } else {
         _timeRemaining = Duration.zero;
