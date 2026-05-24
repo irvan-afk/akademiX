@@ -323,6 +323,20 @@ class DosenUjianViewModel extends ChangeNotifier {
     }).subscribe();
   }
 
+  Future<void> unlockStudent(String nim) async {
+    if (_monitoringChannel != null) {
+      try {
+        await _monitoringChannel!.sendBroadcastMessage(
+          event: 'unlock',
+          payload: {'nim': nim},
+        );
+        debugPrint("DEBUG: Broadcast unlock sent to $nim");
+      } catch (e) {
+        debugPrint("DEBUG ERROR sending broadcast: $e");
+      }
+    }
+  }
+
   void stopMonitoring() {
     _monitoringChannel?.unsubscribe();
     _monitoringChannel = null;

@@ -82,15 +82,34 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
     }
   }
 
+  bool _isUnlockedByDosen = false;
+  bool get isUnlockedByDosen => _isUnlockedByDosen;
+
+  void resetUnlockStatus() {
+    _isUnlockedByDosen = false;
+    notifyListeners();
+  }
+
   // --- PRESENCE MONITORING ---
   void subscribeToPresence(int ujianId, String namaMahasiswa, String nim) {
     if (_presenceChannel != null) return;
     _presenceChannel = _supabase.channel('exam_monitoring_$ujianId');
+    
+    _presenceChannel!.onBroadcast(
+        event: 'unlock',
+        callback: (payload) {
+          if (payload['nim'] == nim) {
+            debugPrint("DEBUG: Received unlock signal from Dosen");
+            _isUnlockedByDosen = true;
+            notifyListeners();
+          }
+        });
+
     _presenceChannel!.onPresenceSync((payload) {
       // Dosen yang butuh list ini, mahasiswa hanya kirim status
     }).subscribe((status, [error]) async {
       if (status == 'SUBSCRIBED') {
-        await _presenceChannel!.track({'nama': namaMahasiswa, 'nim': nim, 'status': 'Online'});
+        await _presenceChannel!.track({'nama': namaMahasiswa, 'nim': nim, 'status': 'LOCKED'});
       }
     });
   }
@@ -374,193 +393,3 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
     super.dispose();
   }
 }
-
-// import 'dart:async';
-// import 'package:flutter/material.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
-// import '../models/ujian_model.dart';
-// import '../models/soal_model.dart';
-// import 'package:akademix/core/database/local_db_service.dart';
-
-// enum SubmissionStatus { idle, loading, offlineSaved, success }
-
-// class MahasiswaUjianViewModel extends ChangeNotifier {
-//   final _supabase = Supabase.instance.client;
-
-//   bool _isLoading = false;
-//   bool get isLoading => _isLoading;
-
-//   UjianModel? _activeUjian;
-//   UjianModel? get activeUjian => _activeUjian;
-
-//   // --- STATE PENGERJAAN ---
-//   List<SoalModel> _daftarSoal = [];
-//   List<SoalModel> get daftarSoal => _daftarSoal;
-
-//   int _currentIndex = 0;
-//   int get currentIndex => _currentIndex;
-
-//   // Manajemen Jawaban & Ragu
-//   Map<int, String> _jawabanMahasiswa = {};
-//   Set<int> _raguRaguSet = {};
-
-//   // Manajemen Timer
-//   Timer? _timer;
-//   Duration _timeRemaining = const Duration(hours: 2); // Default
-//   String get timerString => _formatDuration(_timeRemaining);
-
-//   // --- LOGIKA UTAMA ---
-
-//   // Future<void> startUjian(int ujianId) async {
-//   //   _isLoading = true;
-//   //   notifyListeners();
-
-//   //   try {
-//   //     // 1. Ambil soal dari database lokal (Offline-First)
-//   //     final dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
-//   //     _daftarSoal = dataLokal.map((s) => SoalModel.fromJson(s)).toList();
-
-//   //     // 2. Mulai Timer
-//   //     _startTimer();
-
-//   //     debugPrint("Ujian dimulai dengan ${_daftarSoal.length} soal.");
-//   //   } catch (e) {
-//   //     debugPrint("Error Start Ujian: $e");
-//   //   } finally {
-//   //     _isLoading = false;
-//   //     notifyListeners();
-//   //   }
-//   // }
-
-//   Future<void> startUjian(int ujianId) async {
-//     _isLoading = true;
-//     notifyListeners();
-
-//     try {
-//       // 1. Cek dulu di Lokal (SQLite)
-//       var dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
-
-//       // 2. JIKA KOSONG, Ambil dari Supabase (Cloud)
-//       if (dataLokal.isEmpty) {
-//         print("DEBUG: Lokal kosong, mengambil soal dari Supabase...");
-//         final response = await _supabase
-//             .from('soal')
-//             .select()
-//             .eq('ujian_id', ujianId);
-
-//         final remoteSoal = response as List;
-
-//         if (remoteSoal.isNotEmpty) {
-//           // 3. Simpan hasil dari Supabase ke Lokal agar besok bisa Offline
-//           for (var s in remoteSoal) {
-//             await LocalDbService.instance.saveSoalLokal(s);
-//           }
-//           // Ambil ulang dari lokal setelah disimpan
-//           dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
-//         }
-//       }
-
-//       _daftarSoal = dataLokal.map((s) => SoalModel.fromJson(s)).toList();
-//       _startTimer();
-
-//       print("DEBUG: Berhasil memuat ${_daftarSoal.length} soal.");
-//     } catch (e) {
-//       print("DEBUG ERROR: $e");
-//     } finally {
-//       _isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   void _startTimer() {
-//     _timer?.cancel();
-//     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-//       if (_timeRemaining.inSeconds > 0) {
-//         _timeRemaining -= const Duration(seconds: 1);
-//         notifyListeners();
-//       } else {
-//         _timer?.cancel();
-//         // Tambahkan fungsi auto-submit di sini jika waktu habis
-//       }
-//     });
-//   }
-
-//   void setIndex(int index) {
-//     _currentIndex = index;
-//     notifyListeners();
-//   }
-
-//   void toggleRagu(int soalId) {
-//     if (_raguRaguSet.contains(soalId)) {
-//       _raguRaguSet.remove(soalId);
-//     } else {
-//       _raguRaguSet.add(soalId);
-//     }
-//     notifyListeners();
-//   }
-
-//   Future<void> simpanJawaban(int soalId, String jawaban) async {
-//     _jawabanMahasiswa[soalId] = jawaban;
-//     notifyListeners();
-//     // Simpan ke SQLite secara background
-//     await LocalDbService.instance.saveJawabanLokal(soalId, 1, jawaban);
-//   }
-
-//   // --- HELPER ---
-//   String _formatDuration(Duration d) {
-//     String twoDigits(int n) => n.toString().padLeft(2, "0");
-//     return "${twoDigits(d.inHours)}:${twoDigits(d.inMinutes.remainder(60))}:${twoDigits(d.inSeconds.remainder(60))}";
-//   }
-
-//   String? getJawabanTerpilih(int soalId) => _jawabanMahasiswa[soalId];
-//   bool isRagu(int soalId) => _raguRaguSet.contains(soalId);
-
-//   @override
-//   void dispose() {
-//     _timer?.cancel();
-//     super.dispose();
-//   }
-
-//   // --- LOGIKA JOIN (SUPABASE) ---
-//   Future<UjianModel?> joinUjian(String code) async {
-//     _isLoading = true;
-//     notifyListeners();
-//     try {
-//       final res = await _supabase
-//           .from('UJIAN')
-//           .select()
-//           .eq('kode_ujian', code.toUpperCase())
-//           .maybeSingle();
-//       if (res != null) {
-//         _activeUjian = UjianModel.fromJson(res);
-//         return _activeUjian;
-//       }
-//       return null;
-//     } finally {
-//       _isLoading = false;
-//       notifyListeners();
-//     }
-//   }
-
-//   Future<void> submitUjian() async {
-//     try {
-//       // 1. Ambil data dari SQLite (gunakan angka 1 sesuai simpanJawaban kamu)
-//       final listJawaban = await LocalDbService.instance.getJawabanBySesi(1);
-
-//       for (var data in listJawaban) {
-//         // 2. Kirim ke JAWABAN_MAHASISWA sesuai kolom di screenshot
-//         await _supabase.from('JAWABAN_MAHASISWA').insert({
-//           'soal_id': data['soal_id'],
-//           'sesi_pengerjaan_id':
-//               1, // SESUAIKAN: Gunakan ID sesi pengerjaan yang aktif
-//           'jawaban_teks': data['jawaban_teks'],
-//           // 'mahasiswa_id' dihapus karena tidak ada di tabel ini
-//         });
-//       }
-
-//       print("DEBUG: Berhasil kirim semua ke JAWABAN_MAHASISWA");
-//     } catch (e) {
-//       print("DEBUG ERROR: $e");
-//     }
-//   }
-// }

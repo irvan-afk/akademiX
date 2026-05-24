@@ -108,26 +108,62 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
         barrierDismissible: false,
         builder: (context) => PopScope(
           canPop: false,
-          child: AlertDialog(
-            title: const Text("Koneksi Internet Terdeteksi!"),
-            content: const Text(
-              "Harap matikan WiFi atau Data Seluler Anda untuk melanjutkan ujian offline ini.",
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () async {
-                  final results = await Connectivity().checkConnectivity();
-                  if (!results.contains(ConnectivityResult.mobile) &&
-                      !results.contains(ConnectivityResult.wifi)) {
-                    if (mounted) {
-                      Navigator.of(context, rootNavigator: true).pop();
-                      _isInternetDialogShowing = false;
-                    }
-                  }
-                },
-                child: const Text("Saya Sudah Mematikan Internet."),
-              ),
-            ],
+          child: Consumer<MahasiswaUjianViewModel>(
+            builder: (context, vm, child) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                title: Row(
+                  children: [
+                    Icon(
+                      vm.isUnlockedByDosen ? Icons.lock_open : Icons.lock,
+                      color: vm.isUnlockedByDosen ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        vm.isUnlockedByDosen
+                            ? "Akses Dibuka!"
+                            : "Ujian Terkunci!",
+                        style: TextStyle(
+                          color: vm.isUnlockedByDosen ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                content: Text(
+                  vm.isUnlockedByDosen
+                      ? "Dosen telah membuka kunci ujian Anda.\n\nSilakan matikan WiFi atau Data Seluler Anda sekarang untuk melanjutkan ujian."
+                      : "Koneksi internet terdeteksi! Layar ujian dikunci untuk mencegah kecurangan.\n\nHarap hubungi Dosen Pengawas untuk membukakan kunci Anda (Tetap nyalakan internet agar sinyal pembukaan kunci bisa diterima).",
+                ),
+                actions: [
+                  if (vm.isUnlockedByDosen)
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                      onPressed: () async {
+                        final results = await Connectivity().checkConnectivity();
+                        if (!results.contains(ConnectivityResult.mobile) &&
+                            !results.contains(ConnectivityResult.wifi)) {
+                          if (context.mounted) {
+                            vm.resetUnlockStatus();
+                            Navigator.of(context, rootNavigator: true).pop();
+                            _isInternetDialogShowing = false;
+                          }
+                        } else {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Internet masih aktif! Matikan terlebih dahulu.")),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text("Saya Sudah Mematikan Internet", style: TextStyle(color: Colors.white)),
+                    ),
+                ],
+              );
+            },
           ),
         ),
       );

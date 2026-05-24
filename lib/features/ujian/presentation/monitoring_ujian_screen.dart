@@ -114,7 +114,7 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    "Peringatan: Mahasiswa yang muncul di daftar ini berarti MENGHIDUPKAN internet saat ujian berlangsung!",
+                    "Mahasiswa yang mengaktifkan internet.",
                     style: TextStyle(color: Colors.red, fontSize: 12),
                   ),
                   const SizedBox(height: 15),
@@ -157,11 +157,23 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
                                   subtitle: Text("NIM: ${student['nim'] ?? '-'}"),
-                                  trailing: const Text(
-                                    "ONLINE",
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.bold,
+                                  trailing: ElevatedButton.icon(
+                                    onPressed: () {
+                                      final nim = student['nim'];
+                                      if (nim != null) {
+                                        vm.unlockStudent(nim);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text("Sinyal Buka Kunci dikirim ke ${student['nama']}!")),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.lock_open, size: 16, color: Colors.white),
+                                    label: const Text("Unlock", style: TextStyle(color: Colors.white)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     ),
                                   ),
                                 ),
