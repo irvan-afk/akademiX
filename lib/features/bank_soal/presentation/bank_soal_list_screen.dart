@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/widgets/akademix_card.dart';
 import '../../auth/view_models/auth_view_model.dart';
-import '../../ujian/view_models/dosen_ujian_view_model.dart';
+import '../../ujian/presentation/controller/publish_exam_controller.dart';
 import 'buat_bank_soal_screen.dart';
 
 /// Bank Soal List Screen: Shows list of ujian created via bank soal feature.
@@ -26,7 +26,7 @@ class _BankSoalListScreenState extends State<BankSoalListScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final dosenId = context.read<AuthViewModel>().userData?['id'];
       if (dosenId != null) {
-        context.read<DosenUjianViewModel>().fetchUjianForDosen(dosenId);
+        context.read<PublishExamController>().fetchUjianForDosen(dosenId);
       }
     });
   }
@@ -40,7 +40,7 @@ class _BankSoalListScreenState extends State<BankSoalListScreen> {
   Future<void> _refresh() async {
     final dosenId = context.read<AuthViewModel>().userData?['id'];
     if (dosenId != null) {
-      await context.read<DosenUjianViewModel>().fetchUjianForDosen(
+      await context.read<PublishExamController>().fetchUjianForDosen(
         dosenId as int,
       );
     }
@@ -66,7 +66,7 @@ class _BankSoalListScreenState extends State<BankSoalListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<DosenUjianViewModel>();
+    final vm = context.watch<PublishExamController>();
     final filteredUjian = vm.allUjianDosen.where((u) {
       return u.judulUjian.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();

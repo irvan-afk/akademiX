@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// 1. Update import ke ViewModel Dosen
-import '../view_models/dosen_ujian_view_model.dart';
+import 'package:akademix/features/ujian/presentation/controller/recap_controller.dart';
 import '../../../core/widgets/akademix_card.dart';
 
 class RekapNilaiView extends StatefulWidget {
@@ -25,13 +24,13 @@ class _RekapNilaiViewState extends State<RekapNilaiView> {
     super.initState();
 
     Future.microtask(
-      () => context.read<DosenUjianViewModel>().fetchRekapNilai(widget.ujianId),
+      () => context.read<RecapController>().fetchRekapNilai(widget.ujianId),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<DosenUjianViewModel>();
+    final vm = context.watch<RecapController>();
     final filtered = vm.rekapNilai
         .where((m) => m['nama'].toLowerCase().contains(_query.toLowerCase()))
         .toList();

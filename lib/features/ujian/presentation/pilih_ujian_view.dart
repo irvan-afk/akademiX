@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// 1. Pastikan import merujuk ke DosenUjianViewModel
-import '../view_models/dosen_ujian_view_model.dart';
+import 'package:akademix/features/ujian/presentation/controller/grading_controller.dart';
 import 'daftar_mahasiswa_view.dart';
 import 'rekap_nilai_view.dart';
 import '../../../core/widgets/akademix_card.dart';
@@ -24,7 +23,7 @@ class _PilihUjianViewState extends State<PilihUjianView> {
     super.initState();
 
     Future.microtask(
-      () => context.read<DosenUjianViewModel>().fetchPublishedExams(),
+      () => context.read<GradingController>().fetchPublishedExams(),
     );
   }
 
@@ -36,7 +35,7 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<DosenUjianViewModel>();
+    final vm = context.watch<GradingController>();
 
     final filteredExams = vm.publishedExams.where((ujian) {
       final judul = ujian['judul_ujian'].toString().toLowerCase();

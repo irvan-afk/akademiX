@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/mahasiswa_ujian_view_model.dart';
+import 'package:akademix/features/ujian/presentation/controller/mahasiswa_ujian_controller.dart';
 
 class SubmissionResultScreen extends StatelessWidget {
   const SubmissionResultScreen({super.key});

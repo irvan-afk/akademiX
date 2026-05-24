@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/dosen_ujian_view_model.dart';
-import '../../../core/widgets/curved_header.dart';
-import '../../../core/widgets/akademix_card.dart';
+import 'package:akademix/features/ujian/presentation/controller/monitoring_controller.dart';
+import 'package:akademix/core/widgets/curved_header.dart';
+import 'package:akademix/core/widgets/akademix_card.dart';
 
 class MonitoringUjianScreen extends StatefulWidget {
   final int ujianId;
@@ -25,21 +25,19 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      context.read<DosenUjianViewModel>().startMonitoring(widget.ujianId);
+      context.read<MonitoringController>().startMonitoring(widget.ujianId);
     });
   }
 
   @override
   void dispose() {
-    // Jangan stop monitoring di dispose jika Dosen ingin kembali ke layar ini nanti? 
-    // Tapi untuk keamanan, kita stop saja saat keluar.
-    context.read<DosenUjianViewModel>().stopMonitoring();
+    context.read<MonitoringController>().stopMonitoring();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<DosenUjianViewModel>();
+    final vm = context.watch<MonitoringController>();
     final onlineStudents = vm.onlineStudents;
 
     return Scaffold(
@@ -51,7 +49,7 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
             subtitle: widget.judulUjian,
             showBackButton: true,
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: AkademixCard(
@@ -97,15 +95,24 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: onlineStudents.isEmpty ? Colors.green.shade100 : Colors.red.shade100,
+                          color: onlineStudents.isEmpty
+                              ? Colors.green.shade100
+                              : Colors.red.shade100,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          onlineStudents.isEmpty ? "Aman (Semua Offline)" : "${onlineStudents.length} Online!",
+                          onlineStudents.isEmpty
+                              ? "Aman (Semua Offline)"
+                              : "${onlineStudents.length} Online!",
                           style: TextStyle(
-                            color: onlineStudents.isEmpty ? Colors.green : Colors.red,
+                            color: onlineStudents.isEmpty
+                                ? Colors.green
+                                : Colors.red,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -118,20 +125,27 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
                     style: TextStyle(color: Colors.red, fontSize: 12),
                   ),
                   const SizedBox(height: 15),
-                  
+
                   Expanded(
                     child: onlineStudents.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle_outline, size: 80, color: Colors.green.shade200),
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  size: 80,
+                                  color: Colors.green.shade200,
+                                ),
                                 const SizedBox(height: 15),
                                 const Text(
                                   "Semua mahasiswa sedang offline.\nUjian berjalan aman.",
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.grey, fontSize: 16),
-                                )
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ],
                             ),
                           )
@@ -144,19 +158,30 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
                                 margin: const EdgeInsets.only(bottom: 15),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(15),
-                                  side: const BorderSide(color: Colors.red, width: 1.5),
+                                  side: const BorderSide(
+                                    color: Colors.red,
+                                    width: 1.5,
+                                  ),
                                 ),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.all(15),
                                   leading: const CircleAvatar(
                                     backgroundColor: Colors.red,
-                                    child: Icon(Icons.warning_amber_rounded, color: Colors.white),
+                                    child: Icon(
+                                      Icons.warning_amber_rounded,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                   title: Text(
                                     student['nama'] ?? 'Unknown',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
                                   ),
-                                  subtitle: Text("NIM: ${student['nim'] ?? '-'}"),
+                                  subtitle: Text(
+                                    "NIM: ${student['nim'] ?? '-'}",
+                                  ),
                                   trailing: const Text(
                                     "ONLINE",
                                     style: TextStyle(

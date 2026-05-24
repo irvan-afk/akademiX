@@ -1,148 +1,79 @@
-import 'dart:async';
-// import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:akademix/features/auth/view_models/auth_view_model.dart';
-// import '../models/soal_model.dart';
-// import '../models/answer_tracker_model.dart';
-// import '../data/jawaban_repository.dart';
-
-// import 'package:flutter/material.dart';
-// import 'package:provider/provider.dart';
-import 'package:screen_protector/screen_protector.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/services.dart';
-import '../view_models/mahasiswa_ujian_view_model.dart';
+import '../controller/sesi_ujian_controller.dart';
+import '../../../ujian/view_models/mahasiswa_ujian_view_model.dart';
 
-class UjianScreen extends StatefulWidget {
+class SesiUjianView extends StatefulWidget {
   final int ujianId;
-  const UjianScreen({super.key, required this.ujianId});
+
+  const SesiUjianView({super.key, required this.ujianId});
 
   @override
-  State<UjianScreen> createState() => _UjianScreenState();
+  State<SesiUjianView> createState() => _SesiUjianViewState();
 }
 
-class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
-  late StreamSubscription<dynamic> _connectivitySubscription;
-  int _violationCount = 0;
-  bool _isWarningDialogShowing = false;
-  bool _isInternetDialogShowing = false;
+class _SesiUjianViewState extends State<SesiUjianView>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initSecurityFeatures();
 
-    // Memulai ujian saat layar dibuka
-    Future.microtask(
-      () => context.read<MahasiswaUjianViewModel>().startUjian(widget.ujianId),
-    );
-  }
+    Future.microtask(() {
+      // ✅ Initialize security & lifecycle handling
+      context.read<SesiUjianController>().initializeSecurityFeatures();
 
-  Future<void> _initSecurityFeatures() async {
-    // 0. Bersihkan Clipboard di awal
-    await Clipboard.setData(const ClipboardData(text: ''));
-
-    // 1. Anti-Screenshot
-    await ScreenProtector.preventScreenshotOn();
-    await ScreenProtector.protectDataLeakageWithBlur(); // For iOS
-
-    // 2. Anti-Internet
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      List<ConnectivityResult> results,
-    ) {
-      final vm = context.read<MahasiswaUjianViewModel>();
-      final authVm = context.read<AuthViewModel>();
-
-      if (results.contains(ConnectivityResult.mobile) ||
-          results.contains(ConnectivityResult.wifi)) {
-        _showInternetWarningDialog();
-        vm.subscribeToPresence(
-          widget.ujianId,
-          authVm.userData?['nama'] ?? "Unknown",
-          authVm.userData?['nim'] ?? "000000",
-        );
-      } else {
-        vm.unsubscribePresence();
-        if (_isInternetDialogShowing && mounted) {
-          Navigator.of(context, rootNavigator: true).pop();
-          _isInternetDialogShowing = false;
-        }
-      }
+      // ✅ Start exam
+      context.read<MahasiswaUjianViewModel>().startUjian(widget.ujianId);
     });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _connectivitySubscription.cancel();
-    ScreenProtector.preventScreenshotOff();
-    ScreenProtector.protectDataLeakageWithBlurOff();
+    context.read<SesiUjianController>().disableSecurityFeatures();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      Clipboard.setData(const ClipboardData(text: ''));
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      _handleViolation();
-    }
-  }
+    // ✅ DELEGATE TO CONTROLLER
+    final controller = context.read<SesiUjianController>();
+    final ujianVm = context.read<MahasiswaUjianViewModel>();
 
-  void _handleViolation() {
-    // Segera submit ujian jika menekan tombol home / keluar aplikasi
-    context.read<MahasiswaUjianViewModel>().submitUjian();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/submission-result');
-    }
-  }
+    final isViolation = controller.handleAppLifecycleChange(state);
 
-  void _showInternetWarningDialog() {
-    if (!_isInternetDialogShowing && mounted) {
-      _isInternetDialogShowing = true;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => PopScope(
-          canPop: false,
-          child: AlertDialog(
-            title: const Text("Koneksi Internet Terdeteksi!"),
-            content: const Text(
-              "Harap matikan WiFi atau Data Seluler Anda untuk melanjutkan ujian offline ini.",
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () async {
-                  final results = await Connectivity().checkConnectivity();
-                  if (!results.contains(ConnectivityResult.mobile) &&
-                      !results.contains(ConnectivityResult.wifi)) {
-                    if (mounted) {
-                      Navigator.of(context, rootNavigator: true).pop();
-                      _isInternetDialogShowing = false;
-                    }
-                  }
-                },
-                child: const Text("Saya Sudah Mematikan Internet."),
-              ),
-            ],
-          ),
-        ),
-      );
+    // If violation occurred, immediately submit
+    if (isViolation) {
+      ujianVm.submitUjian();
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/submission-result');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<MahasiswaUjianViewModel>();
+    final controller = context.watch<SesiUjianController>();
+
+    // ✅ Show internet warning if needed
+    if (controller.isInternetDialogShowing && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showInternetWarningDialog(context, controller);
+      });
+    }
+
     const brightBlue = Color(0xFF2962FF);
 
-    if (vm.isLoading)
+    if (vm.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (vm.daftarSoal.isEmpty)
+    }
+
+    if (vm.daftarSoal.isEmpty) {
       return const Scaffold(body: Center(child: Text("Soal tidak ditemukan.")));
+    }
 
     final soal = vm.daftarSoal[vm.currentIndex];
     final isLastSoal = vm.currentIndex == vm.daftarSoal.length - 1;
@@ -198,7 +129,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 20),
 
-                  // Teks Soal
+                  // ✅ QUESTION TEXT
                   Text(
                     soal.teksSoal,
                     style: const TextStyle(
@@ -209,6 +140,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 30),
 
+                  // ✅ ANSWER OPTIONS
                   soal.tipeSoal.toLowerCase().contains("essai")
                       ? _buildEssayInput(vm, soal)
                       : _buildMultipleChoice(vm, soal, brightBlue),
@@ -235,7 +167,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Timer Bubble
+          // ✅ TIMER
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -258,6 +190,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
             ),
           ),
 
+          // ✅ QUESTION MAP BUTTON
           GestureDetector(
             onTap: () => _showPetaSoal(context, vm, color),
             child: Container(
@@ -278,7 +211,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     );
   }
 
-  // --- KOMPONEN PILIHAN GANDA ---
+  // ✅ MULTIPLE CHOICE OPTIONS
   Widget _buildMultipleChoice(
     MahasiswaUjianViewModel vm,
     dynamic soal,
@@ -334,7 +267,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     );
   }
 
-  // --- KOMPONEN ESSAY ---
+  // ✅ ESSAY INPUT
   Widget _buildEssayInput(MahasiswaUjianViewModel vm, dynamic soal) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -374,7 +307,6 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
           children: [
             Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey[600]),
             const SizedBox(width: 8),
-            // PERBAIKAN: Gunakan Expanded agar teks tidak overflow (pindah baris otomatis)
             Expanded(
               child: Text(
                 "Jawaban tersimpan secara otomatis setiap kali Anda mengetik.",
@@ -387,7 +319,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     );
   }
 
-  // --- KOMPONEN NAVIGASI BAWAH ---
+  // ✅ BOTTOM NAVIGATION
   Widget _buildBottomNav(
     BuildContext context,
     MahasiswaUjianViewModel vm,
@@ -401,7 +333,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.fromLTRB(25, 10, 25, 30),
       child: Row(
         children: [
-          // Tombol Kembali
+          // Previous button
           _circleNavButton(
             Icons.chevron_left,
             Colors.grey.shade200,
@@ -412,7 +344,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
           ),
           const SizedBox(width: 15),
 
-          // Tombol Ragu-ragu
+          // Ragu-ragu button
           Expanded(
             child: SizedBox(
               height: 50,
@@ -424,7 +356,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                   size: 18,
                 ),
                 label: Text(
-                  "Ragu -ragu",
+                  "Ragu-ragu",
                   style: TextStyle(
                     color: isRagu ? Colors.white : Colors.grey,
                     fontWeight: FontWeight.bold,
@@ -444,7 +376,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
           ),
           const SizedBox(width: 15),
 
-          // Tombol Selanjutnya / Selesai
+          // Next / Finish button
           isLast
               ? _actionButton(
                   "Selesai",
@@ -508,7 +440,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     );
   }
 
-  // --- BOTTOM SHEET PETA SOAL  ---
+  // ✅ QUESTION MAP BOTTOM SHEET
   void _showPetaSoal(
     BuildContext context,
     MahasiswaUjianViewModel vm,
@@ -541,7 +473,6 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
               runSpacing: 12,
               children: List.generate(vm.daftarSoal.length, (index) {
                 final id = vm.daftarSoal[index].id;
-                final isAnswered = vm.getJawabanTerpilih(id) != null;
                 final isRagu = vm.isRagu(id);
                 final isCurrent = index == vm.currentIndex;
 
@@ -591,7 +522,6 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
               }),
             ),
             const SizedBox(height: 30),
-            // Indikator Status di Peta Soal
             Row(
               children: [
                 _statusIndicator(color, "Dijawab"),
@@ -649,6 +579,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ✅ FINISH CONFIRMATION DIALOG
   void _showKonfirmasiSelesai(
     BuildContext context,
     MahasiswaUjianViewModel vm,
@@ -689,6 +620,43 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ✅ INTERNET WARNING DIALOG
+  void _showInternetWarningDialog(
+    BuildContext context,
+    SesiUjianController controller,
+  ) {
+    if (!controller.isInternetDialogShowing || !mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text("Koneksi Internet Terdeteksi!"),
+          content: const Text(
+            "Harap matikan WiFi atau Data Seluler Anda untuk melanjutkan ujian offline ini.",
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () async {
+                final results = await Connectivity().checkConnectivity();
+                if (!results.contains(ConnectivityResult.mobile) &&
+                    !results.contains(ConnectivityResult.wifi)) {
+                  if (mounted) {
+                    controller.setInternetDialogShowing(false);
+                    Navigator.of(context, rootNavigator: true).pop();
+                  }
+                }
+              },
+              child: const Text("Saya Sudah Mematikan Internet."),
+            ),
+          ],
+        ),
       ),
     );
   }

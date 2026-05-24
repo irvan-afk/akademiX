@@ -1,99 +1,89 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/mahasiswa_ujian_view_model.dart';
-// 1. IMPORT AuthViewModel untuk ambil ID Mahasiswa
-import '../../auth/view_models/auth_view_model.dart';
-import 'waiting_room_screen.dart';
-import '../../../core/widgets/curved_header.dart';
-import '../../../core/widgets/akademix_card.dart';
+import 'package:akademix/features/ujian/presentation/controller/join_ujian_controller.dart';
+import 'package:akademix/features/auth/view_models/auth_view_model.dart';
+import './waiting_room_view.dart';
+import 'package:akademix/core/widgets/curved_header.dart';
+import 'package:akademix/core/widgets/akademix_card.dart';
 
-class JoinUjianScreen extends StatefulWidget {
-  const JoinUjianScreen({super.key});
+class JoinUjianView extends StatefulWidget {
+  const JoinUjianView({super.key});
 
   @override
-  State<JoinUjianScreen> createState() => _JoinUjianScreenState();
+  State<JoinUjianView> createState() => _JoinUjianViewState();
 }
 
-class _JoinUjianScreenState extends State<JoinUjianScreen> {
+class _JoinUjianViewState extends State<JoinUjianView> {
   final TextEditingController _codeController = TextEditingController();
 
-  Future<void> _joinUjian() async {
-    final code = _codeController.text.trim().toUpperCase();
-    if (code.isEmpty) return;
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
 
+  Future<void> _handleJoinExam() async {
+    // ✅ Get controllers
+    final joinController = context.read<JoinUjianController>();
     final authVm = context.read<AuthViewModel>();
-    final mhsId = authVm.mahasiswaId;
 
+    // ✅ Validate auth session
+    final mhsId = authVm.mahasiswaId;
     if (mhsId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Sesi login tidak valid. Silakan login ulang."),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Sesi login tidak valid. Silakan login ulang."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
       return;
     }
 
-    //  fungsi join untuk mendapatkan data ujian dan sesi
-    final vm = context.read<MahasiswaUjianViewModel>();
-    
-    try {
-      final ujian = await vm.joinUjian(code, mhsId);
+    // ✅ Call controller to join exam
+    final ujianId = await joinController.joinExam(
+      _codeController.text.trim().toUpperCase(),
+      mhsId,
+    );
 
-      if (mounted) {
-        if (ujian != null) {
-          // Tampilkan pesan sukses
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Soal berhasil diunduh!"),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
+    if (!mounted) return;
 
-          //  Beralih ke Waiting Room
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WaitingRoomScreen(ujianId: ujian.id),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Kode ujian salah atau belum aktif!"),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        if (e.toString().contains('UJIAN_SUDAH_DIKERJAKAN')) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Anda sudah menyelesaikan ujian ini!"),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Terjadi kesalahan saat bergabung ke ujian."),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
+    // ✅ Handle result
+    if (ujianId != null) {
+      // Success
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Soal berhasil diunduh!"),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Navigate to waiting room
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WaitingRoomView(ujianId: ujianId),
+        ),
+      );
+    } else {
+      // Error
+      final errorMsg = joinController.errorMessage ?? "Terjadi kesalahan";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMsg),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    //  Pantau status loading dari MahasiswaUjianViewModel
-    final isLoading = context.watch<MahasiswaUjianViewModel>().isLoading;
+    // ✅ WATCH controller state only for UI
+    final controller = context.watch<JoinUjianController>();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFF),
@@ -132,8 +122,10 @@ class _JoinUjianScreenState extends State<JoinUjianScreen> {
                         ),
                         const SizedBox(height: 15),
 
+                        // ✅ CODE INPUT FIELD
                         TextField(
                           controller: _codeController,
+                          enabled: !controller.isLoading,
                           textAlign: TextAlign.center,
                           maxLength: 6,
                           style: const TextStyle(
@@ -156,11 +148,14 @@ class _JoinUjianScreenState extends State<JoinUjianScreen> {
                         ),
                         const SizedBox(height: 30),
 
+                        // ✅ JOIN BUTTON
                         SizedBox(
                           width: double.infinity,
                           height: 55,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : _joinUjian,
+                            onPressed: controller.isLoading
+                                ? null
+                                : _handleJoinExam,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF2962FF),
                               shape: RoundedRectangleBorder(
@@ -168,7 +163,7 @@ class _JoinUjianScreenState extends State<JoinUjianScreen> {
                               ),
                               elevation: 0,
                             ),
-                            child: isLoading
+                            child: controller.isLoading
                                 ? const SizedBox(
                                     width: 24,
                                     height: 24,

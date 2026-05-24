@@ -1,11 +1,11 @@
 // import '../../../../core/constants/app_enums.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/dosen_ujian_view_model.dart';
-import '../../auth/view_models/auth_view_model.dart';
-import '../models/ujian_model.dart';
-import '../../../core/widgets/akademix_card.dart';
-import 'monitoring_ujian_screen.dart';
+import 'package:akademix/features/ujian/presentation/controller/publish_exam_controller.dart';
+import 'package:akademix/features/auth/view_models/auth_view_model.dart';
+import '../../models/ujian_model.dart';
+import 'package:akademix/core/widgets/akademix_card.dart';
+import 'monitoring_ujian_view.dart';
 
 /// Publish Bank Soal Screen: Shows list of ujian with publish action.
 /// Dosen can only view and publish ujian (no add/edit/delete).
@@ -27,7 +27,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
     Future.microtask(() {
       final dosenId = context.read<AuthViewModel>().userData?['id'];
       if (dosenId != null) {
-        context.read<DosenUjianViewModel>().fetchUjianForDosen(dosenId);
+        context.read<PublishExamController>().fetchUjianForDosen(dosenId);
       }
     });
   }
@@ -40,7 +40,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<DosenUjianViewModel>();
+    final vm = context.watch<PublishExamController>();
 
     final filteredUjian = vm.allUjianDosen.where((u) {
       return u.judulUjian.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -173,7 +173,10 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
                               Row(
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.info_outline, color: Colors.blue),
+                                    icon: const Icon(
+                                      Icons.info_outline,
+                                      color: Colors.blue,
+                                    ),
                                     tooltip: "Info Kode",
                                     onPressed: () {
                                       _showSuccessPopup(
@@ -212,7 +215,9 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
                                       ),
                                     ),
                                     style: OutlinedButton.styleFrom(
-                                      side: const BorderSide(color: Colors.green),
+                                      side: const BorderSide(
+                                        color: Colors.green,
+                                      ),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -269,7 +274,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
     BuildContext context,
     UjianModel ujian,
   ) async {
-    final tokens = await context.read<DosenUjianViewModel>().publishUjian(
+    final tokens = await context.read<PublishExamController>().publishUjian(
       ujian.id,
     );
     if (tokens != null && mounted) {
@@ -282,7 +287,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
       // Refresh data setelah publish berhasil
       final dosenId = context.read<AuthViewModel>().userData?['id'];
       if (dosenId != null) {
-        context.read<DosenUjianViewModel>().fetchUjianForDosen(dosenId);
+        context.read<PublishExamController>().fetchUjianForDosen(dosenId);
       }
     }
   }

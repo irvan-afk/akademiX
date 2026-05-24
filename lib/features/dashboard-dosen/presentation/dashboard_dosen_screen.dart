@@ -4,10 +4,10 @@ import 'package:akademix/features/auth/view_models/auth_view_model.dart';
 import 'package:akademix/features/auth/presentation/profile_screen.dart';
 import 'package:akademix/core/constants/routes.dart';
 import '../../bank_soal/presentation/bank_soal_list_screen.dart';
-import '../../ujian/presentation/publish_bank_soal_screen.dart';
+import '../../ujian/presentation/view/publish_bank_soal_view.dart';
 import '../../ujian/presentation/pilih_ujian_view.dart';
-import '../../ujian/view_models/dosen_ujian_view_model.dart';
-import '../../ujian/presentation/monitoring_ujian_screen.dart';
+import '../../ujian/presentation/controller/monitoring_controller.dart';
+import '../../ujian/presentation/view/monitoring_ujian_view.dart';
 
 class DashboardDosenScreen extends StatefulWidget {
   const DashboardDosenScreen({super.key});
@@ -474,7 +474,7 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
 
               Navigator.pop(dialogContext); // Tutup dialog
 
-              final vm = context.read<DosenUjianViewModel>();
+              final vm = context.read<MonitoringController>();
               final ujian = await vm.joinPengawasan(code);
 
               if (context.mounted) {

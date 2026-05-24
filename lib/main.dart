@@ -17,13 +17,24 @@ import 'package:akademix/features/dashboard-dosen/presentation/dashboard_dosen_s
 
 // Import Ujian
 import 'package:akademix/features/ujian/view_models/dosen_ujian_view_model.dart';
-import 'package:akademix/features/ujian/view_models/mahasiswa_ujian_view_model.dart';
-import 'package:akademix/features/ujian/presentation/join_ujian_screen.dart';
-import 'package:akademix/features/ujian/presentation/submission_result_screen.dart';
-import 'package:akademix/features/ujian/presentation/sesi_ujian_screen.dart';
+import 'package:akademix/features/ujian/presentation/controller/mahasiswa_ujian_controller.dart';
+import 'package:akademix/features/ujian/presentation/controller/sesi_ujian_controller.dart';
+import 'package:akademix/features/ujian/presentation/controller/waiting_room_controller.dart';
+import 'package:akademix/features/ujian/presentation/controller/join_ujian_controller.dart';
+import 'package:akademix/features/ujian/presentation/controller/publish_exam_controller.dart';
+import 'package:akademix/features/ujian/presentation/controller/grading_controller.dart';
+import 'package:akademix/features/ujian/presentation/controller/recap_controller.dart';
+import 'package:akademix/features/ujian/presentation/controller/monitoring_controller.dart';
+import 'package:akademix/features/ujian/presentation/view/join_ujian_view.dart';
+import 'package:akademix/features/ujian/presentation/view/submission_result_view.dart';
+import 'package:akademix/features/ujian/presentation/view/sesi_ujian_view.dart';
+import 'package:akademix/features/ujian/presentation/view/waiting_room_view.dart';
 
 // Import Bank Soal
 import 'package:akademix/features/bank_soal/view_models/bank_soal_view_model.dart';
+import 'package:akademix/features/bank_soal/presentation/controller/draft_controller.dart';
+import 'package:akademix/features/bank_soal/presentation/controller/pengampu_controller.dart';
+import 'package:akademix/features/bank_soal/presentation/controller/publish_bank_soal_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +60,32 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => MahasiswaUjianViewModel()),
         ChangeNotifierProvider(create: (_) => DosenUjianViewModel()),
         ChangeNotifierProvider(create: (_) => BankSoalViewModel()),
+        ChangeNotifierProvider(create: (_) => SesiUjianController()),
+        ChangeNotifierProvider(create: (_) => WaitingRoomController()),
+        ChangeNotifierProvider(create: (_) => PublishExamController()),
+        ChangeNotifierProvider(create: (_) => GradingController()),
+        ChangeNotifierProvider(create: (_) => RecapController()),
+        ChangeNotifierProvider(create: (_) => MonitoringController()),
+        // Bank Soal Controllers
+        ChangeNotifierProvider(create: (_) => DraftController()),
+        ChangeNotifierProvider(create: (_) => PengampuController()),
+        ChangeNotifierProvider(create: (_) => PublishBankSoalController()),
+        // JoinUjianController depends on MahasiswaUjianViewModel
+        // ProxyProvider<MahasiswaUjianViewModel, JoinUjianController>(
+        //   create: (context) =>
+        //       JoinUjianController(context.read<MahasiswaUjianViewModel>()),
+        //   update: (context, mahasiswaUjianVm, previous) =>
+        //       JoinUjianController(mahasiswaUjianVm),
+        // ),
+        ChangeNotifierProxyProvider<
+          MahasiswaUjianViewModel,
+          JoinUjianController
+        >(
+          create: (context) =>
+              JoinUjianController(context.read<MahasiswaUjianViewModel>()),
+          update: (context, mahasiswaUjianVm, previous) =>
+              previous ?? JoinUjianController(mahasiswaUjianVm),
+        ),
       ],
       child: const MyApp(),
     ),
@@ -77,11 +114,16 @@ class MyApp extends StatelessWidget {
         '/mahasiswa/home': (context) => const DashboardMahasiswaScreen(),
         '/dosen/home': (context) => const DashboardDosenScreen(),
         '/submission-result': (context) => const SubmissionResultScreen(),
-        '/join-ujian': (context) => const JoinUjianScreen(),
+        '/join-ujian': (context) => const JoinUjianView(),
 
         '/ujian': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as int;
-          return UjianScreen(ujianId: args);
+          return SesiUjianView(ujianId: args);
+        },
+
+        '/waiting-room': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as int;
+          return WaitingRoomView(ujianId: args);
         },
       },
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../view_models/dosen_ujian_view_model.dart';
+import 'package:akademix/features/ujian/presentation/controller/grading_controller.dart';
 import 'detail_koreksi_view.dart';
 import '../../../core/widgets/akademix_card.dart';
 
@@ -27,8 +27,7 @@ class _DaftarMahasiswaViewState extends State<DaftarMahasiswaView> {
     super.initState();
 
     Future.microtask(
-      () =>
-          context.read<DosenUjianViewModel>().fetchSubmissions(widget.ujianId),
+      () => context.read<GradingController>().fetchSubmissions(widget.ujianId),
     );
   }
 
@@ -40,7 +39,7 @@ class _DaftarMahasiswaViewState extends State<DaftarMahasiswaView> {
 
   @override
   Widget build(BuildContext context) {
-    final vm = context.watch<DosenUjianViewModel>();
+    final vm = context.watch<GradingController>();
 
     final filteredSubmissions = vm.submissions.where((sub) {
       final mhs = sub['MAHASISWA'] ?? {};

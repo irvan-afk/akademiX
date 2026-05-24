@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// 1. Update ke ViewModel Dosen
-import '../view_models/dosen_ujian_view_model.dart';
+import 'package:akademix/features/ujian/presentation/controller/grading_controller.dart';
 import '../../../core/widgets/akademix_card.dart';
 import 'nilai_akhir_view.dart';
 
@@ -30,14 +29,14 @@ class _DetailKoreksiViewState extends State<DetailKoreksiView> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      // 2. Gunakan DosenUjianViewModel
-      await context.read<DosenUjianViewModel>().fetchDetailPengerjaan(
+      // ✅ Use GradingController
+      await context.read<GradingController>().fetchDetailPengerjaan(
         widget.ujianId,
         widget.sesiId,
       );
 
       if (mounted) {
-        for (var item in context.read<DosenUjianViewModel>().detailPengerjaan) {
+        for (var item in context.read<GradingController>().detailPengerjaan) {
           final jwbId = item['jawaban']['id'];
           if (jwbId != null) {
             _scoreControllers[jwbId] = TextEditingController(
@@ -69,8 +68,8 @@ class _DetailKoreksiViewState extends State<DetailKoreksiView> {
 
   @override
   Widget build(BuildContext context) {
-    // 3. Watch DosenUjianViewModel
-    final vm = context.watch<DosenUjianViewModel>();
+    // ✅ Watch GradingController
+    final vm = context.watch<GradingController>();
 
     final filteredDetail = vm.detailPengerjaan.where((item) {
       final teksSoal = item['soal']['teks_soal'].toString().toLowerCase();

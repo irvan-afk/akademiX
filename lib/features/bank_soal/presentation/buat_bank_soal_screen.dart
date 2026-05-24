@@ -6,7 +6,9 @@ import 'package:provider/provider.dart';
 import '../../../core/widgets/akademix_card.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../models/bank_soal_draft_model.dart';
-import '../view_models/bank_soal_view_model.dart';
+import '../presentation/controller/draft_controller.dart';
+import '../presentation/controller/pengampu_controller.dart';
+import '../presentation/controller/publish_bank_soal_controller.dart';
 
 class BuatBankSoalScreen extends StatefulWidget {
   final bool startFresh;
@@ -32,18 +34,19 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
   void _syncHeaderToViewModel() {
     if (!mounted) return;
 
-    final vm = context.read<BankSoalViewModel>();
+    final draftCtrl = context.read<DraftController>();
+    final pengampuCtrl = context.read<PengampuController>();
     final authVm = context.read<AuthViewModel>();
     final dosenId = authVm.userData?['id'] as int?;
     final pengampuText = _kelasPengampuController.text.trim();
 
     // Use the first pengampu option if available (for dosen's own pengampu)
     int? pengampuId;
-    if (vm.pengampuOptions.isNotEmpty) {
-      pengampuId = vm.pengampuOptions.first.id;
+    if (pengampuCtrl.pengampuOptions.isNotEmpty) {
+      pengampuId = pengampuCtrl.pengampuOptions.first.id;
     }
 
-    vm.setHeader(
+    draftCtrl.setHeader(
       pengampuId: pengampuId,
       pengampuLabel: pengampuText.isEmpty ? null : pengampuText,
       mataKuliah: _mataKuliahController.text.trim(),
@@ -79,7 +82,8 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
   }
 
   void _syncControllerFromDraft() {
-    final draft = context.read<BankSoalViewModel>().draft;
+    final draftCtrl = context.read<DraftController>();
+    final draft = draftCtrl.draft;
     _mataKuliahController.text = draft.mataKuliah;
     _kelasPengampuController.text = draft.pengampuLabel ?? '';
     _judulUjianController.text = draft.judulUjian;
@@ -89,30 +93,46 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
   Future<void> _loadInitialData() async {
     final authVm = context.read<AuthViewModel>();
     final dosenId = authVm.userData?['id'] as int?;
-    final vm = context.read<BankSoalViewModel>();
+    final pengampuCtrl = context.read<PengampuController>();
+    final publishCtrl = context.read<PublishBankSoalController>();
+    final draftCtrl = context.read<DraftController>();
 
     if (dosenId != null) {
-      await vm.loadPengampuForDosen(dosenId);
+      await pengampuCtrl.loadPengampuForDosen(dosenId);
       if (widget.idremoteUjian != null) {
-        final loaded = await vm.loadDraftForRemoteUjian(widget.idremoteUjian!);
-        if (!loaded) {
-          vm.resetDraft(dosenId: dosenId);
+        final loaded = await publishCtrl.loadDraftForRemoteUjian(
+          widget.idremoteUjian!,
+        );
+        if (loaded == null) {
+          draftCtrl.resetDraft(dosenId: dosenId);
+        } else {
+          draftCtrl.setDraft(loaded);
         }
       } else if (widget.startFresh) {
-        vm.resetDraft(dosenId: dosenId);
+        draftCtrl.resetDraft(dosenId: dosenId);
       } else {
-        await vm.loadLatestDraft(dosenId: dosenId);
+        final loaded = await publishCtrl.loadLatestDraft(dosenId: dosenId);
+        if (loaded != null) {
+          draftCtrl.setDraft(loaded);
+        }
       }
     } else {
       if (widget.idremoteUjian != null) {
-        final loaded = await vm.loadDraftForRemoteUjian(widget.idremoteUjian!);
-        if (!loaded) {
-          vm.resetDraft();
+        final loaded = await publishCtrl.loadDraftForRemoteUjian(
+          widget.idremoteUjian!,
+        );
+        if (loaded == null) {
+          draftCtrl.resetDraft();
+        } else {
+          draftCtrl.setDraft(loaded);
         }
       } else if (widget.startFresh) {
-        vm.resetDraft();
+        draftCtrl.resetDraft();
       } else {
-        await vm.loadLatestDraft(dosenId: null);
+        final loaded = await publishCtrl.loadLatestDraft(dosenId: null);
+        if (loaded != null) {
+          draftCtrl.setDraft(loaded);
+        }
       }
     }
 
@@ -122,23 +142,29 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
   }
 
   Future<void> _handleSave() async {
-    final vm = context.read<BankSoalViewModel>();
+    final draftCtrl = context.read<DraftController>();
+    final publishCtrl = context.read<PublishBankSoalController>();
 
-    final saved = await vm.saveDraft();
+    final saved = await publishCtrl.saveDraft(draftCtrl.draft);
     if (!mounted) return;
     if (saved) {
       Navigator.pop(context, true);
       return;
     }
-    _showMessage(vm.lastActionMessage ?? (saved ? 'Draft tersimpan.' : ''));
+    _showMessage(
+      publishCtrl.lastActionMessage ?? (saved ? 'Draft tersimpan.' : ''),
+    );
   }
 
   Future<void> _handlePublish() async {
-    final vm = context.read<BankSoalViewModel>();
+    final draftCtrl = context.read<DraftController>();
+    final publishCtrl = context.read<PublishBankSoalController>();
 
-    final published = await vm.publishDraft();
+    final published = await publishCtrl.publishDraft(draftCtrl.draft);
     if (!mounted) return;
-    _showMessage(vm.lastActionMessage ?? (published ? 'Dipublish.' : ''));
+    _showMessage(
+      publishCtrl.lastActionMessage ?? (published ? 'Dipublish.' : ''),
+    );
   }
 
   void _showMessage(String message) {
@@ -153,8 +179,12 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<BankSoalViewModel>(
-      builder: (context, vm, _) {
+    return Consumer3<
+      DraftController,
+      PengampuController,
+      PublishBankSoalController
+    >(
+      builder: (context, draftCtrl, pengampuCtrl, publishCtrl, _) {
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFF),
           appBar: AppBar(
@@ -177,12 +207,12 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
               ),
             ),
           ),
-          body: vm.isLoading
+          body: (publishCtrl.isLoading || pengampuCtrl.isLoading)
               ? const Center(child: CircularProgressIndicator())
               : SafeArea(
                   child: Column(
                     children: [
-                      _buildTopActionBar(vm),
+                      _buildTopActionBar(draftCtrl, publishCtrl),
                       Expanded(
                         child: ListView(
                           physics: const BouncingScrollPhysics(),
@@ -204,7 +234,7 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
                                   const SizedBox(height: 14),
                                   _buildFieldLabel('Kelas / Pengampu'),
                                   const SizedBox(height: 6),
-                                  _buildPengampuField(vm),
+                                  _buildPengampuField(pengampuCtrl),
                                   const SizedBox(height: 14),
                                   _buildFieldLabel('Judul Ujian'),
                                   const SizedBox(height: 6),
@@ -233,29 +263,30 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 _buildSectionTitle(
-                                  'DAFTAR PERTANYAAN (${vm.draft.questions.length})',
+                                  'DAFTAR PERTANYAAN (${draftCtrl.draft.questions.length})',
                                 ),
-                                _buildPointSummary(vm),
+                                _buildPointSummary(draftCtrl),
                               ],
                             ),
                             const SizedBox(height: 10),
-                            if (!vm.draft.hasValidHeader)
+                            if (!draftCtrl.draft.hasValidHeader)
                               _buildHintBanner(
                                 'Lengkapi mata kuliah, judul ujian, dan durasi sebelum menambah soal.',
                                 Colors.orange.shade700,
                                 Colors.orange.shade50,
                               ),
-                            if (vm.draft.questions.isEmpty)
+                            if (draftCtrl.draft.questions.isEmpty)
                               _buildEmptyQuestionState()
                             else
                               ListView.separated(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                itemCount: vm.draft.questions.length,
+                                itemCount: draftCtrl.draft.questions.length,
                                 separatorBuilder: (context, _) =>
                                     const SizedBox(height: 16),
                                 itemBuilder: (context, index) {
-                                  final question = vm.draft.questions[index];
+                                  final question =
+                                      draftCtrl.draft.questions[index];
                                   return _BankSoalItemCard(
                                     index: index + 1,
                                     question: question,
@@ -265,7 +296,7 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
                                         initialQuestion: question,
                                       );
                                       if (updated != null && mounted) {
-                                        vm.updateQuestion(updated);
+                                        draftCtrl.updateQuestion(updated);
                                       }
                                     },
                                     onDelete: () async {
@@ -273,14 +304,16 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
                                         context,
                                       );
                                       if (yes == true && mounted) {
-                                        vm.removeQuestion(question.localId);
+                                        draftCtrl.removeQuestion(
+                                          question.localId,
+                                        );
                                       }
                                     },
                                   );
                                 },
                               ),
                             const SizedBox(height: 12),
-                            _buildQuestionTypeActions(vm),
+                            _buildQuestionTypeActions(draftCtrl),
                           ],
                         ),
                       ),
@@ -303,7 +336,7 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     );
   }
 
-  Widget _buildQuestionTypeActions(BankSoalViewModel vm) {
+  Widget _buildQuestionTypeActions(DraftController draftCtrl) {
     return SafeArea(
       top: false,
       child: Padding(
@@ -312,14 +345,14 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: vm.draft.hasValidHeader
+                onPressed: draftCtrl.draft.hasValidHeader
                     ? () async {
                         final question = await _showQuestionForm(
                           context,
                           tipeSoal: 'pilihan_ganda',
                         );
                         if (question != null && mounted) {
-                          vm.addQuestion(question);
+                          draftCtrl.addQuestion(question);
                         }
                       }
                     : null,
@@ -340,14 +373,14 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: vm.draft.hasValidHeader
+                onPressed: draftCtrl.draft.hasValidHeader
                     ? () async {
                         final question = await _showQuestionForm(
                           context,
                           tipeSoal: 'essai',
                         );
                         if (question != null && mounted) {
-                          vm.addQuestion(question);
+                          draftCtrl.addQuestion(question);
                         }
                       }
                     : null,
@@ -371,8 +404,11 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     );
   }
 
-  Widget _buildTopActionBar(BankSoalViewModel vm) {
-    final canPublish = vm.isReadyToPublish && !vm.isLoading;
+  Widget _buildTopActionBar(
+    DraftController draftCtrl,
+    PublishBankSoalController publishCtrl,
+  ) {
+    final canPublish = draftCtrl.isReadyToPublish && !publishCtrl.isLoading;
 
     return Container(
       decoration: BoxDecoration(
@@ -396,7 +432,7 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: vm.isLoading ? null : _handleSave,
+                onPressed: publishCtrl.isLoading ? null : _handleSave,
                 icon: const Icon(Icons.save_outlined, size: 16),
                 label: const Text('Simpan Draft'),
                 style: ElevatedButton.styleFrom(
@@ -487,7 +523,7 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     );
   }
 
-  Widget _buildPengampuField(BankSoalViewModel vm) {
+  Widget _buildPengampuField(PengampuController pengampuCtrl) {
     return _buildInputField(
       controller: _kelasPengampuController,
       hintText: 'Ketik kelas / pengampu',
@@ -495,8 +531,8 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     );
   }
 
-  Widget _buildPointSummary(BankSoalViewModel vm) {
-    final isValid = vm.totalPoin == 100;
+  Widget _buildPointSummary(DraftController draftCtrl) {
+    final isValid = draftCtrl.totalPoin == 100;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
@@ -504,7 +540,7 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        'Poin ${vm.totalPoin}/100',
+        'Poin ${draftCtrl.totalPoin}/100',
         style: TextStyle(
           color: isValid ? Colors.green.shade700 : Colors.orange.shade700,
           fontWeight: FontWeight.w700,

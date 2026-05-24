@@ -1,7 +1,6 @@
 import 'package:akademix/core/constants/supabase_constants.dart';
 import 'package:akademix/core/models/user_model.dart';
 import 'package:akademix/core/constants/app_enums.dart';
-import 'dart:developer';
 import 'package:flutter/foundation.dart';
 
 class AuthRepositoryImpl {
@@ -49,6 +48,7 @@ class AuthRepositoryImpl {
         debugPrint("DEBUG REPO DETAIL DOSEN: $result");
         return result;
       }
+      return null;
     } catch (e) {
       debugPrint("DEBUG REPO DETAIL ERROR: $e");
       return null;

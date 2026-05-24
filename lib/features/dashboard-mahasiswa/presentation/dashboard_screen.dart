@@ -3,9 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:akademix/features/auth/view_models/auth_view_model.dart';
 import 'package:akademix/core/constants/routes.dart';
 import 'package:akademix/features/auth/presentation/profile_screen.dart';
-import '../../ujian/presentation/join_ujian_screen.dart';
+import '../../ujian/presentation/view/join_ujian_view.dart';
 import '../../ujian/presentation/riwayat_mahasiswa_view.dart';
-import 'package:akademix/features/ujian/view_models/mahasiswa_ujian_view_model.dart';
+import 'package:akademix/features/ujian/presentation/controller/mahasiswa_ujian_controller.dart';
 
 class DashboardMahasiswaScreen extends StatefulWidget {
   const DashboardMahasiswaScreen({super.key});
@@ -320,9 +320,7 @@ class BerandaContent extends StatelessWidget {
             child: ElevatedButton.icon(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const JoinUjianScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const JoinUjianView()),
               ),
               icon: const Icon(Icons.vpn_key_outlined, size: 18),
               label: const Text("Mulai Sekarang"),
@@ -411,7 +409,10 @@ class BerandaContent extends StatelessWidget {
     );
   }
 
-  Widget _buildTungguSinkronCard(BuildContext context, MahasiswaUjianViewModel vm) {
+  Widget _buildTungguSinkronCard(
+    BuildContext context,
+    MahasiswaUjianViewModel vm,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -469,7 +470,9 @@ class BerandaContent extends StatelessWidget {
                 } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text("Masih gagal, pastikan internet Anda aktif."),
+                      content: Text(
+                        "Masih gagal, pastikan internet Anda aktif.",
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
