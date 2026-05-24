@@ -43,6 +43,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   screen_protector: ^1.5.1
   connectivity_plus: ^7.1.1
+  bcrypt: ^1.2.0
 
 dev_dependencies:
   flutter_test:
