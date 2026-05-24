@@ -3,6 +3,7 @@ import 'package:akademix/core/models/user_model.dart';
 import 'package:akademix/core/constants/app_enums.dart';
 import 'dart:developer';
 import 'package:flutter/foundation.dart';
+import 'package:bcrypt/bcrypt.dart';
 
 class AuthRepositoryImpl {
   // Login
@@ -12,8 +13,15 @@ class AuthRepositoryImpl {
           .from('USERS')
           .select()
           .eq('username', username)
-          .eq('password_hash', password)
           .single();
+
+      final String storedHash = data['password_hash'];
+      final bool isMatch = BCrypt.checkpw(password, storedHash);
+
+      if (!isMatch) {
+        debugPrint("DEBUG REPO LOGIN ERROR: Invalid password");
+        return null;
+      }
 
       debugPrint("DEBUG REPO LOGIN SUCCESS: $data");
       return UserModel.fromJson(data);
