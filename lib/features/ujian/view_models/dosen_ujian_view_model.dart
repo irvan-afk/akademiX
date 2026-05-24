@@ -409,6 +409,21 @@ class DosenUjianViewModel extends ChangeNotifier {
         payload: {'nim': nim},
       );
       
+      final onlineIndex = _onlineStudents.indexWhere((s) => s['nim'] == nim);
+      if (onlineIndex != -1) {
+        _onlineStudents[onlineIndex]['status'] = 'AMAN';
+      }
+      
+      final pesertaIndex = _pesertaUjian.indexWhere((p) {
+        final m = p['MAHASISWA'] as Map<String, dynamic>?;
+        return m != null && m['nim'] == nim;
+      });
+      if (pesertaIndex != -1) {
+        _pesertaUjian[pesertaIndex]['status_pengerjaan'] = 'ONGOING';
+      }
+      
+      notifyListeners();
+      
       // Update database agar statusnya kembali ONGOING (hapus efek LOCKED dari DB)
       try {
         final mahasiswaRes = await _supabase
