@@ -311,7 +311,7 @@ class _PublishBankSoalScreenState extends State<PublishBankSoalScreen> {
             const SizedBox(height: 20),
             _buildTokenBox("KODE UJIAN", tokenUjian),
             const SizedBox(height: 10),
-            _buildTokenBox("PIN OFFLINE", pinMulai),
+            _buildTokenBox("PIN MULAI UJIAN", pinMulai),
             const SizedBox(height: 10),
             _buildTokenBox('KODE MONITORING', tokenMonitor),
             const SizedBox(height: 25),

@@ -122,6 +122,7 @@ class BankSoalDraftModel {
   final int? remoteUjianId;
   final String? kodeUjian;
   final String? kodePengawasan;
+  final String? pinMulai;
   final String mataKuliah;
   final String judulUjian;
   final int durasiMenit;
@@ -138,6 +139,7 @@ class BankSoalDraftModel {
     this.remoteUjianId,
     this.kodeUjian,
     this.kodePengawasan,
+    this.pinMulai,
     required this.mataKuliah,
     required this.judulUjian,
     required this.durasiMenit,
@@ -157,6 +159,7 @@ class BankSoalDraftModel {
       remoteUjianId: null,
       kodeUjian: null,
       kodePengawasan: null,
+      pinMulai: null,
       mataKuliah: '',
       judulUjian: '',
       durasiMenit: 90,
@@ -194,6 +197,7 @@ class BankSoalDraftModel {
       remoteUjianId: bankSoal['remote_ujian_id'] as int?,
       kodeUjian: bankSoal['kode_ujian']?.toString(),
       kodePengawasan: bankSoal['kode_pengawasan']?.toString(),
+      pinMulai: bankSoal['pin_mulai']?.toString(),
       mataKuliah: bankSoal['mata_kuliah']?.toString() ?? '',
       judulUjian: bankSoal['judul_ujian']?.toString() ?? '',
       durasiMenit: (bankSoal['durasi_menit'] as num? ?? 0).toInt(),
@@ -217,6 +221,7 @@ class BankSoalDraftModel {
       'remote_ujian_id': remoteUjianId,
       'kode_ujian': kodeUjian,
       'kode_pengawasan': kodePengawasan,
+      'pin_mulai': pinMulai,
       'mata_kuliah': mataKuliah,
       'judul_ujian': judulUjian,
       'durasi_menit': durasiMenit,
@@ -238,6 +243,7 @@ class BankSoalDraftModel {
     int? remoteUjianId,
     String? kodeUjian,
     String? kodePengawasan,
+    String? pinMulai,
     String? mataKuliah,
     String? judulUjian,
     int? durasiMenit,
@@ -254,6 +260,7 @@ class BankSoalDraftModel {
       remoteUjianId: remoteUjianId ?? this.remoteUjianId,
       kodeUjian: kodeUjian ?? this.kodeUjian,
       kodePengawasan: kodePengawasan ?? this.kodePengawasan,
+      pinMulai: pinMulai ?? this.pinMulai,
       mataKuliah: mataKuliah ?? this.mataKuliah,
       judulUjian: judulUjian ?? this.judulUjian,
       durasiMenit: durasiMenit ?? this.durasiMenit,

@@ -468,9 +468,14 @@ class BerandaContent extends StatelessWidget {
                   );
                 } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Masih gagal, pastikan internet Anda aktif."),
+                    SnackBar(
+                      content: Text(
+                        vm.lastErrorMessage != null 
+                            ? "Gagal: ${vm.lastErrorMessage}"
+                            : "Masih gagal, pastikan internet Anda aktif."
+                      ),
                       backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 5),
                     ),
                   );
                 }

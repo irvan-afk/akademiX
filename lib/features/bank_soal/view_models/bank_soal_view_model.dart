@@ -209,6 +209,7 @@ class BankSoalViewModel extends ChangeNotifier {
         remoteUjianId: _draft.remoteUjianId,
         kodeUjian: _draft.kodeUjian,
         kodePengawasan: _draft.kodePengawasan,
+        pinMulai: _draft.pinMulai,
         mataKuliah: _draft.mataKuliah,
         judulUjian: _draft.judulUjian,
         durasiMenit: _draft.durasiMenit,
@@ -239,6 +240,7 @@ class BankSoalViewModel extends ChangeNotifier {
           remoteUjianId: _draft.remoteUjianId,
           kodeUjian: _draft.kodeUjian,
           kodePengawasan: _draft.kodePengawasan,
+          pinMulai: _draft.pinMulai,
           mataKuliah: _draft.mataKuliah,
           judulUjian: _draft.judulUjian,
           durasiMenit: _draft.durasiMenit,
@@ -278,6 +280,7 @@ class BankSoalViewModel extends ChangeNotifier {
         remoteUjianId: _draft.remoteUjianId,
         kodeUjian: _draft.kodeUjian,
         kodePengawasan: _draft.kodePengawasan,
+        pinMulai: _draft.pinMulai,
         mataKuliah: _draft.mataKuliah,
         judulUjian: _draft.judulUjian,
         durasiMenit: _draft.durasiMenit,
@@ -343,8 +346,9 @@ class BankSoalViewModel extends ChangeNotifier {
               'status_ujian': publish ? 'PUBLISHED' : 'DRAFT',
               'kode_ujian': publish ? _generateRandomCode() : null,
               'kode_pengawasan': publish ? _generateRandomCode() : null,
+              'pin_mulai': publish ? (1000 + Random().nextInt(9000)).toString() : null,
             })
-            .select('id, kode_ujian, kode_pengawasan')
+            .select('id, kode_ujian, kode_pengawasan, pin_mulai')
             .single();
 
         ujianId = inserted['id'] as int?;
@@ -352,6 +356,7 @@ class BankSoalViewModel extends ChangeNotifier {
           remoteUjianId: ujianId,
           kodeUjian: inserted['kode_ujian']?.toString(),
           kodePengawasan: inserted['kode_pengawasan']?.toString(),
+          pinMulai: inserted['pin_mulai']?.toString(),
         );
       } else {
         final payload = <String, dynamic>{
@@ -367,6 +372,9 @@ class BankSoalViewModel extends ChangeNotifier {
           'kode_pengawasan': publish
               ? _draft.kodePengawasan ?? _generateRandomCode()
               : _draft.kodePengawasan,
+          'pin_mulai': publish
+              ? _draft.pinMulai ?? (1000 + Random().nextInt(9000)).toString()
+              : _draft.pinMulai,
         };
 
         await _supabase.from('UJIAN').update(payload).eq('id', ujianId);
@@ -419,6 +427,7 @@ class BankSoalViewModel extends ChangeNotifier {
       return {
         'ujian': _draft.kodeUjian ?? '',
         'monitoring': _draft.kodePengawasan ?? '',
+        'pin': _draft.pinMulai ?? '',
       };
     } catch (e) {
       debugPrint('BankSoalViewModel.publishDraftForRemoteUjian error: $e');

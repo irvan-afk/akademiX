@@ -216,9 +216,13 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
     }
   }
 
+  String? lastErrorMessage;
+
   Future<void> submitUjian() async {
+    lastErrorMessage = null;
     if (_currentSesiId == null) {
       debugPrint("DEBUG ERROR: currentSesiId null!");
+      lastErrorMessage = "Session ID tidak ditemukan. Silakan login kembali.";
       return;
     }
 
@@ -229,6 +233,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
 
       if (listJawabanRaw.isEmpty) {
         debugPrint("DEBUG: Tidak ada jawaban di lokal.");
+        lastErrorMessage = "Tidak ada jawaban yang tersimpan di perangkat.";
         return;
       }
 
@@ -269,11 +274,12 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         };
       }).toList();
 
-      await _supabase
-          .from('JAWABAN_MAHASISWA')
-          .upsert(dataToUpload, onConflict: 'sesi_pengerjaan_id, soal_id');
-
-      debugPrint("DEBUG: Berhasil kirim ${dataToUpload.length} jawaban.");
+      if (dataToUpload.isNotEmpty) {
+        await _supabase
+            .from('JAWABAN_MAHASISWA')
+            .insert(dataToUpload);
+        debugPrint("DEBUG: Berhasil kirim ${dataToUpload.length} jawaban.");
+      }
 
       await _supabase
           .from('SESI_PENGERJAAN')
@@ -294,8 +300,19 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
 
     } catch (e) {
       debugPrint("DEBUG ERROR SAAT SUBMIT: $e");
+      lastErrorMessage = e.toString();
 
-      _status = SubmissionStatus.offlineSaved;
+      if (lastErrorMessage!.contains('23503') && lastErrorMessage!.contains('SESI_PENGERJAAN')) {
+        lastErrorMessage = "Sesi ujian tidak ditemukan di server (mungkin sudah dihapus). Data lokal direset.";
+        await LocalDbService.instance.clearAllLokalData();
+        _activeUjian = null;
+        _currentSesiId = null;
+        _daftarSoal.clear();
+        _jawabanMahasiswa.clear();
+        _status = SubmissionStatus.idle;
+      } else {
+        _status = SubmissionStatus.offlineSaved;
+      }
     } finally {
       notifyListeners();
     }

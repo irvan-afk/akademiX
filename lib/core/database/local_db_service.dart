@@ -88,6 +88,7 @@ class LocalDbService {
         remote_ujian_id INTEGER,
         kode_ujian TEXT,
         kode_pengawasan TEXT,
+        pin_mulai TEXT,
         mata_kuliah TEXT,
         judul_ujian TEXT,
         durasi_menit INTEGER,
@@ -132,6 +133,7 @@ class LocalDbService {
     await addColumn(
       'ALTER TABLE bank_soal_lokal ADD COLUMN kode_pengawasan TEXT',
     );
+    await addColumn('ALTER TABLE bank_soal_lokal ADD COLUMN pin_mulai TEXT');
   }
 
   Future<void> _ensureBankSoalTables() async {
@@ -282,6 +284,7 @@ class LocalDbService {
     required int? remoteUjianId,
     required String? kodeUjian,
     required String? kodePengawasan,
+    required String? pinMulai,
     required String mataKuliah,
     required String judulUjian,
     required int? durasiMenit,
@@ -299,6 +302,7 @@ class LocalDbService {
       'remote_ujian_id': remoteUjianId,
       'kode_ujian': kodeUjian,
       'kode_pengawasan': kodePengawasan,
+      'pin_mulai': pinMulai,
       'mata_kuliah': mataKuliah,
       'judul_ujian': judulUjian,
       'durasi_menit': durasiMenit,
