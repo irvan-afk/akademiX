@@ -144,19 +144,24 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
                                 margin: const EdgeInsets.only(bottom: 15),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(15),
-                                  side: const BorderSide(color: Colors.red, width: 1.5),
+                                  side: BorderSide(
+                                    color: (student['violations'] ?? 0) >= 3 ? Colors.red : Colors.orange, 
+                                    width: 1.5
+                                  ),
                                 ),
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.all(15),
-                                  leading: const CircleAvatar(
-                                    backgroundColor: Colors.red,
-                                    child: Icon(Icons.warning_amber_rounded, color: Colors.white),
+                                  leading: CircleAvatar(
+                                    backgroundColor: (student['violations'] ?? 0) >= 3 ? Colors.red : Colors.orange,
+                                    child: const Icon(Icons.warning_amber_rounded, color: Colors.white),
                                   ),
                                   title: Text(
                                     student['nama'] ?? 'Unknown',
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
-                                  subtitle: Text("NIM: ${student['nim'] ?? '-'}"),
+                                  subtitle: Text(
+                                    "NIM: ${student['nim'] ?? '-'}\nStatus: ${(student['violations'] ?? 0) >= 3 ? 'TERKUNCI' : 'PERINGATAN'} (${student['violations'] ?? 1}/3)",
+                                  ),
                                   trailing: ElevatedButton.icon(
                                     onPressed: () {
                                       final nim = student['nim'];

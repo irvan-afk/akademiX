@@ -25,9 +25,9 @@ class UjianScreen extends StatefulWidget {
 
 class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   late StreamSubscription<dynamic> _connectivitySubscription;
-  int _violationCount = 0;
   bool _isWarningDialogShowing = false;
-  bool _isInternetDialogShowing = false;
+  bool _isLockDialogShowing = false;
+  bool _pendingLifecycleWarning = false;
   @override
   void initState() {
     super.initState();
@@ -55,19 +55,36 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
       final vm = context.read<MahasiswaUjianViewModel>();
       final authVm = context.read<AuthViewModel>();
 
-      if (results.contains(ConnectivityResult.mobile) ||
-          results.contains(ConnectivityResult.wifi)) {
-        _showInternetWarningDialog();
+      bool isOnline = results.contains(ConnectivityResult.mobile) ||
+          results.contains(ConnectivityResult.wifi);
+
+      if (isOnline) {
+        if (!vm.isUnlockedByDosen) {
+          vm.incrementViolation();
+        }
+        
+        String status = vm.violationCount >= 3 ? 'LOCKED' : 'WARNING';
         vm.subscribeToPresence(
           widget.ujianId,
           authVm.userData?['nama'] ?? "Unknown",
           authVm.userData?['nim'] ?? "000000",
+          status
         );
+
+        if (vm.violationCount >= 3) {
+          _showLockDialog();
+        } else if (!vm.isUnlockedByDosen) {
+          _showWarningDialog("Koneksi internet terdeteksi! Dilarang menyalakan internet selama ujian.");
+        }
       } else {
         vm.unsubscribePresence();
-        if (_isInternetDialogShowing && mounted) {
+        if (_isWarningDialogShowing && mounted) {
           Navigator.of(context, rootNavigator: true).pop();
-          _isInternetDialogShowing = false;
+          _isWarningDialogShowing = false;
+        }
+        if (_isLockDialogShowing && vm.isUnlockedByDosen && mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+          _isLockDialogShowing = false;
         }
       }
     });
@@ -86,6 +103,10 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       Clipboard.setData(const ClipboardData(text: ''));
+      if (_pendingLifecycleWarning) {
+        _pendingLifecycleWarning = false;
+        _showWarningDialog("Dilarang keluar aplikasi atau menarik bar notifikasi!");
+      }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       _handleViolation();
@@ -93,16 +114,62 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   }
 
   void _handleViolation() {
-    // Segera submit ujian jika menekan tombol home / keluar aplikasi
-    context.read<MahasiswaUjianViewModel>().submitUjian();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/submission-result');
+    final vm = context.read<MahasiswaUjianViewModel>();
+    if (!vm.isUnlockedByDosen) {
+      vm.incrementViolation();
+      if (vm.violationCount >= 3) {
+        _showLockDialog();
+      } else {
+        _pendingLifecycleWarning = true;
+      }
     }
   }
 
-  void _showInternetWarningDialog() {
-    if (!_isInternetDialogShowing && mounted) {
-      _isInternetDialogShowing = true;
+  void _showWarningDialog(String message) {
+    if (!_isWarningDialogShowing && mounted) {
+      _isWarningDialogShowing = true;
+      final vm = context.read<MahasiswaUjianViewModel>();
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => PopScope(
+          canPop: false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            title: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Peringatan ${vm.violationCount}/3",
+                    style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: Text("$message\n\nJika pelanggaran mencapai 3 kali, ujian Anda akan dikunci otomatis."),
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                onPressed: () {
+                  if (mounted) {
+                    Navigator.of(context, rootNavigator: true).pop();
+                    _isWarningDialogShowing = false;
+                  }
+                },
+                child: const Text("Saya Mengerti", style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showLockDialog() {
+    if (!_isLockDialogShowing && mounted) {
+      _isLockDialogShowing = true;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -136,7 +203,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                 content: Text(
                   vm.isUnlockedByDosen
                       ? "Dosen telah membuka kunci ujian Anda.\n\nSilakan matikan WiFi atau Data Seluler Anda sekarang untuk melanjutkan ujian."
-                      : "Koneksi internet terdeteksi! Layar ujian dikunci untuk mencegah kecurangan.\n\nHarap hubungi Dosen Pengawas untuk membukakan kunci Anda (Tetap nyalakan internet agar sinyal pembukaan kunci bisa diterima).",
+                      : "Anda telah melakukan pelanggaran maksimal (3 kali). Layar ujian dikunci otomatis untuk mencegah kecurangan.\n\nHarap hubungi Dosen Pengawas untuk membukakan kunci Anda (Tetap nyalakan internet agar sinyal pembukaan kunci bisa diterima).",
                 ),
                 actions: [
                   if (vm.isUnlockedByDosen)
@@ -149,7 +216,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                           if (context.mounted) {
                             vm.resetUnlockStatus();
                             Navigator.of(context, rootNavigator: true).pop();
-                            _isInternetDialogShowing = false;
+                            _isLockDialogShowing = false;
                           }
                         } else {
                           if (context.mounted) {

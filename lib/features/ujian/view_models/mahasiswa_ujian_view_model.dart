@@ -85,13 +85,24 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   bool _isUnlockedByDosen = false;
   bool get isUnlockedByDosen => _isUnlockedByDosen;
 
+  int _violationCount = 0;
+  int get violationCount => _violationCount;
+
+  void incrementViolation() {
+    if (_violationCount < 3) {
+      _violationCount++;
+      notifyListeners();
+    }
+  }
+
   void resetUnlockStatus() {
     _isUnlockedByDosen = false;
+    _violationCount = 0;
     notifyListeners();
   }
 
   // --- PRESENCE MONITORING ---
-  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim) {
+  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim, String status) {
     if (_presenceChannel != null) return;
     _presenceChannel = _supabase.channel('exam_monitoring_$ujianId');
     
@@ -107,11 +118,27 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
 
     _presenceChannel!.onPresenceSync((payload) {
       // Dosen yang butuh list ini, mahasiswa hanya kirim status
-    }).subscribe((status, [error]) async {
-      if (status == 'SUBSCRIBED') {
-        await _presenceChannel!.track({'nama': namaMahasiswa, 'nim': nim, 'status': 'LOCKED'});
+    }).subscribe((subscribeStatus, [error]) async {
+      if (subscribeStatus == 'SUBSCRIBED') {
+        await _presenceChannel!.track({
+          'nama': namaMahasiswa, 
+          'nim': nim, 
+          'status': status,
+          'violations': _violationCount,
+        });
       }
     });
+  }
+
+  Future<void> updatePresenceStatus(String namaMahasiswa, String nim, String status) async {
+    if (_presenceChannel != null) {
+      await _presenceChannel!.track({
+        'nama': namaMahasiswa, 
+        'nim': nim, 
+        'status': status,
+        'violations': _violationCount,
+      });
+    }
   }
 
   void unsubscribePresence() {

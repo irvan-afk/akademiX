@@ -314,6 +314,7 @@ class DosenUjianViewModel extends ChangeNotifier {
                'nama': presence.payload['nama'],
                'nim': presence.payload['nim'],
                'status': presence.payload['status'],
+               'violations': presence.payload['violations'] ?? 0,
              });
           }
         }
