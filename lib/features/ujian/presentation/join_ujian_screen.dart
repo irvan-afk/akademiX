@@ -77,6 +77,24 @@ class _JoinUjianScreenState extends State<JoinUjianScreen> {
               behavior: SnackBarBehavior.floating,
             ),
           );
+        } else if (e.toString().contains('BELUM_WAKTUNYA')) {
+          final msg = e.toString().replaceFirst('Exception: BELUM_WAKTUNYA ', '');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Ujian belum dimulai!\n$msg"),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        } else if (e.toString().contains('WAKTU_HABIS')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Waktu ujian sudah habis!"),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
