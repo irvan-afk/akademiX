@@ -364,6 +364,23 @@ class DosenUjianViewModel extends ChangeNotifier {
     await fetchPesertaUjian(ujianId);
 
     _monitoringChannel = _supabase.channel('exam_monitoring_$ujianId');
+    
+    // Dengarkan perubahan database secara real-time (Insert Join Ujian / Update Submit)
+    _monitoringChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'SESI_PENGERJAAN',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'ujian_id',
+        value: ujianId,
+      ),
+      callback: (payload) {
+        debugPrint("DB Change detected, refetching peserta...");
+        fetchPesertaUjian(ujianId);
+      },
+    );
+
     _monitoringChannel!.onPresenceSync((payload) {
       final newState = _monitoringChannel!.presenceState();
       List<Map<String, dynamic>> currentOnline = [];

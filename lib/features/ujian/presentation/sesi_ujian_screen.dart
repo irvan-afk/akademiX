@@ -73,6 +73,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
       } else {
         vm.unsubscribePresence();
         if (_isLockDialogShowing && vm.isUnlockedByDosen && mounted) {
+          vm.resetUnlockStatus(); // PENTING: Harus direset agar bisa mengunci lagi nanti!
           Navigator.of(context, rootNavigator: true).pop();
           _isLockDialogShowing = false;
         }

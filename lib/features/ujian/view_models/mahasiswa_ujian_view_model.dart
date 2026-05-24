@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive/hive.dart';
 import '../models/ujian_model.dart';
 import '../models/soal_model.dart';
 import 'package:akademix/core/database/local_db_service.dart';
@@ -43,11 +44,36 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   String get timerString => _formatDuration(_timeRemaining);
 
   // --- OFFLINE SUBMISSION CHECK ---
-  Future<void> checkOfflineSubmission() async {
+  Future<void> checkOfflineSubmission({int? mahasiswaId}) async {
     final db = await LocalDbService.instance.database;
     final exams = await db.query('ujian_lokal');
     if (exams.isNotEmpty) {
       final exam = exams.first;
+      
+      // VERIFIKASI SERVER: Pastikan ujian ini belum disubmit di server (misal dari HP lain)
+      if (mahasiswaId != null) {
+        try {
+          final res = await _supabase
+              .from('SESI_PENGERJAAN')
+              .select('status_pengerjaan')
+              .eq('ujian_id', exam['id'] as int)
+              .eq('mahasiswa_id', mahasiswaId)
+              .maybeSingle();
+
+          if (res != null && res['status_pengerjaan'] == 'SUBMITTED') {
+            debugPrint("Ujian sudah disubmit di server. Membersihkan data lokal yang nyangkut...");
+            await LocalDbService.instance.clearAllLokalData();
+            _activeUjian = null;
+            _currentSesiId = null;
+            _status = SubmissionStatus.idle;
+            notifyListeners();
+            return;
+          }
+        } catch (e) {
+          debugPrint("Gagal verifikasi status sinkronisasi ke server (Offline): $e");
+        }
+      }
+
       final answers = await db.query('jawaban_lokal');
       if (answers.isNotEmpty) {
         _activeUjian = UjianModel(
@@ -320,12 +346,6 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         _currentSesiId!,
       );
 
-      if (listJawabanRaw.isEmpty) {
-        debugPrint("DEBUG: Tidak ada jawaban di lokal.");
-        lastErrorMessage = "Tidak ada jawaban yang tersimpan di perangkat.";
-        return;
-      }
-
       final Map<int, Map<String, dynamic>> uniqueJawabanMap = {};
       for (var item in listJawabanRaw) {
         uniqueJawabanMap[item['soal_id']] = item;
@@ -370,14 +390,25 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         debugPrint("DEBUG: Berhasil kirim ${dataToUpload.length} jawaban.");
       }
 
+      final offlineBox = Hive.box('offline_exams');
+      final waktuKey = 'waktu_selesai_${_currentSesiId}';
+      
+      // Simpan waktu offline jika belum ada
+      if (!offlineBox.containsKey(waktuKey)) {
+        offlineBox.put(waktuKey, DateTime.now().toIso8601String());
+      }
+      
+      final submitTime = offlineBox.get(waktuKey);
+
       await _supabase
           .from('SESI_PENGERJAAN')
           .update({
             'status_pengerjaan': 'SUBMITTED',
-            'submitted_at': DateTime.now().toIso8601String(),
+            'submitted_at': submitTime,
           })
           .eq('id', _currentSesiId!);
 
+      offlineBox.delete(waktuKey); // Bersihkan setelah sukses
       _status = SubmissionStatus.success;
       
       // BERSIHKAN STATE UI & SQLITE SETELAH SUKSES MENGIRIM
@@ -401,6 +432,13 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         _status = SubmissionStatus.idle;
       } else {
         _status = SubmissionStatus.offlineSaved;
+        
+        // Simpan waktu selesai ujian saat offline (sebelum berhasil sync)
+        final offlineBox = Hive.box('offline_exams');
+        final waktuKey = 'waktu_selesai_${_currentSesiId}';
+        if (!offlineBox.containsKey(waktuKey)) {
+          offlineBox.put(waktuKey, DateTime.now().toIso8601String());
+        }
       }
     } finally {
       notifyListeners();

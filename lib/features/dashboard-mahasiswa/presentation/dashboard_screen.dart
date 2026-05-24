@@ -23,7 +23,9 @@ class _DashboardMahasiswaScreenState extends State<DashboardMahasiswaScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MahasiswaUjianViewModel>().checkOfflineSubmission();
+      final authVm = context.read<AuthViewModel>();
+      final mahasiswaId = authVm.mahasiswaId;
+      context.read<MahasiswaUjianViewModel>().checkOfflineSubmission(mahasiswaId: mahasiswaId);
     });
   }
 
