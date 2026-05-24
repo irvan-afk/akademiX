@@ -453,7 +453,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
       lastErrorMessage = e.toString();
 
       if (lastErrorMessage!.contains('23503') && lastErrorMessage!.contains('SESI_PENGERJAAN')) {
-        lastErrorMessage = "Sesi ujian tidak ditemukan di server (mungkin sudah dihapus). Data lokal direset.";
+        lastErrorMessage = "Sesi ujian tidak ditemukan di server. Data lokal direset.";
         await LocalDbService.instance.clearAllLokalData();
         _activeUjian = null;
         _currentSesiId = null;
