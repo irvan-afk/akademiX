@@ -79,33 +79,70 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         );
         notifyListeners();
       }
+      
+      if (_activeUjian?.statusLokal == 'LOCKED') {
+        _isLockedByViolation = true;
+        notifyListeners();
+      }
     }
   }
 
   bool _isUnlockedByDosen = false;
   bool get isUnlockedByDosen => _isUnlockedByDosen;
 
-  int _violationCount = 0;
-  int get violationCount => _violationCount;
+  bool _isLockedByViolation = false;
+  bool get isLockedByViolation => _isLockedByViolation;
 
-  void incrementViolation() {
-    if (_violationCount < 3) {
-      _violationCount++;
+  void triggerLock() async {
+    if (!_isLockedByViolation) {
+      _isLockedByViolation = true;
+      if (_activeUjian != null) {
+        await LocalDbService.instance.updateUjianStatusLokal(_activeUjian!.id, 'LOCKED');
+      }
       notifyListeners();
     }
   }
 
-  void resetUnlockStatus() {
+  void resetUnlockStatus() async {
     _isUnlockedByDosen = false;
-    _violationCount = 0;
+    _isLockedByViolation = false;
+    if (_activeUjian != null) {
+      await LocalDbService.instance.updateUjianStatusLokal(_activeUjian!.id, 'ACTIVE');
+    }
     notifyListeners();
   }
 
   // --- PRESENCE MONITORING ---
-  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim, String status) {
-    if (_presenceChannel != null) return;
+  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim, String status) async {
+    // 1. Selalu pastikan status pengerjaan di Supabase ter-update secara permanen
+    if (_currentSesiId != null) {
+      try {
+        await _supabase.from('SESI_PENGERJAAN').update({
+          'status_pengerjaan': status == 'LOCKED' ? 'LOCKED' : 'ONGOING',
+        }).eq('id', _currentSesiId!);
+      } catch (e) {
+        debugPrint("Gagal update remote lock status: $e");
+      }
+    }
+
+    // 2. Broadcast ke Live Presence
+    if (_presenceChannel != null) {
+      await _presenceChannel!.track({
+        'nama': namaMahasiswa, 
+        'nim': nim, 
+        'status': status,
+        'violations': _isLockedByViolation ? 3 : 0,
+      });
+      return;
+    }
+
     _presenceChannel = _supabase.channel('exam_monitoring_$ujianId');
-    
+    _presenceChannel!.onPresenceJoin((payload) {
+      debugPrint("Presence joined: $payload");
+    }).onPresenceLeave((payload) {
+      debugPrint("Presence left: $payload");
+    });
+
     _presenceChannel!.onBroadcast(
         event: 'unlock',
         callback: (payload) {
@@ -116,15 +153,13 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
           }
         });
 
-    _presenceChannel!.onPresenceSync((payload) {
-      // Dosen yang butuh list ini, mahasiswa hanya kirim status
-    }).subscribe((subscribeStatus, [error]) async {
-      if (subscribeStatus == 'SUBSCRIBED') {
+    _presenceChannel!.subscribe((status_event, [error]) async {
+      if (status_event == 'SUBSCRIBED') {
         await _presenceChannel!.track({
           'nama': namaMahasiswa, 
           'nim': nim, 
           'status': status,
-          'violations': _violationCount,
+          'violations': _isLockedByViolation ? 3 : 0,
         });
       }
     });
@@ -136,7 +171,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         'nama': namaMahasiswa, 
         'nim': nim, 
         'status': status,
-        'violations': _violationCount,
+        'violations': _isLockedByViolation ? 3 : 0,
       });
     }
   }
