@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive/hive.dart';
 import '../models/ujian_model.dart';
 import '../models/soal_model.dart';
 import 'package:akademix/core/database/local_db_service.dart';
@@ -43,19 +44,44 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   String get timerString => _formatDuration(_timeRemaining);
 
   // --- OFFLINE SUBMISSION CHECK ---
-  Future<void> checkOfflineSubmission() async {
+  Future<void> checkOfflineSubmission({int? mahasiswaId}) async {
     final db = await LocalDbService.instance.database;
     final exams = await db.query('ujian_lokal');
     if (exams.isNotEmpty) {
       final exam = exams.first;
+      
+      // VERIFIKASI SERVER: Pastikan ujian ini belum disubmit di server (misal dari HP lain)
+      if (mahasiswaId != null) {
+        try {
+          final res = await _supabase
+              .from('SESI_PENGERJAAN')
+              .select('status_pengerjaan')
+              .eq('ujian_id', exam['id'] as int)
+              .eq('mahasiswa_id', mahasiswaId)
+              .maybeSingle();
+
+          if (res != null && res['status_pengerjaan'] == 'SUBMITTED') {
+            debugPrint("Ujian sudah disubmit di server. Membersihkan data lokal yang nyangkut...");
+            await LocalDbService.instance.clearAllLokalData();
+            _activeUjian = null;
+            _currentSesiId = null;
+            _status = SubmissionStatus.idle;
+            notifyListeners();
+            return;
+          }
+        } catch (e) {
+          debugPrint("Gagal verifikasi status sinkronisasi ke server (Offline): $e");
+        }
+      }
+
       final answers = await db.query('jawaban_lokal');
       if (answers.isNotEmpty) {
         _activeUjian = UjianModel(
            id: exam['id'] as int,
            judulUjian: exam['judul_ujian'] as String,
            pengampuId: 0,
-           waktuMulai: DateTime.now(),
-           waktuSelesai: DateTime.now(),
+           waktuMulai: exam['waktu_mulai'] != null ? DateTime.parse(exam['waktu_mulai'] as String) : DateTime.now(),
+           waktuSelesai: exam['waktu_selesai'] != null ? DateTime.parse(exam['waktu_selesai'] as String) : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
            durasiMenit: exam['durasi'] as int,
            statusUjian: UjianStatus.published,
            pinMulai: exam['pin_mulai'] as String?,
@@ -70,13 +96,18 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
            id: exam['id'] as int,
            judulUjian: exam['judul_ujian'] as String,
            pengampuId: 0,
-           waktuMulai: DateTime.now(),
-           waktuSelesai: DateTime.now(),
+           waktuMulai: exam['waktu_mulai'] != null ? DateTime.parse(exam['waktu_mulai'] as String) : DateTime.now(),
+           waktuSelesai: exam['waktu_selesai'] != null ? DateTime.parse(exam['waktu_selesai'] as String) : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
            durasiMenit: exam['durasi'] as int,
            statusUjian: UjianStatus.published,
            pinMulai: exam['pin_mulai'] as String?,
            statusLokal: exam['status_lokal'] as String? ?? 'WAITING',
         );
+        notifyListeners();
+      }
+      
+      if (_activeUjian?.statusLokal == 'LOCKED') {
+        _isLockedByViolation = true;
         notifyListeners();
       }
     }
@@ -85,16 +116,59 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   bool _isUnlockedByDosen = false;
   bool get isUnlockedByDosen => _isUnlockedByDosen;
 
-  void resetUnlockStatus() {
+  bool _isLockedByViolation = false;
+  bool get isLockedByViolation => _isLockedByViolation;
+
+  void triggerLock() async {
+    if (!_isLockedByViolation) {
+      _isLockedByViolation = true;
+      if (_activeUjian != null) {
+        await LocalDbService.instance.updateUjianStatusLokal(_activeUjian!.id, 'LOCKED');
+      }
+      notifyListeners();
+    }
+  }
+
+  void resetUnlockStatus() async {
     _isUnlockedByDosen = false;
+    _isLockedByViolation = false;
+    if (_activeUjian != null) {
+      await LocalDbService.instance.updateUjianStatusLokal(_activeUjian!.id, 'ACTIVE');
+    }
     notifyListeners();
   }
 
   // --- PRESENCE MONITORING ---
-  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim) {
-    if (_presenceChannel != null) return;
+  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim, String status) async {
+    // 1. Selalu pastikan status pengerjaan di Supabase ter-update secara permanen
+    if (_currentSesiId != null) {
+      try {
+        await _supabase.from('SESI_PENGERJAAN').update({
+          'status_pengerjaan': status == 'LOCKED' ? 'LOCKED' : 'ONGOING',
+        }).eq('id', _currentSesiId!);
+      } catch (e) {
+        debugPrint("Gagal update remote lock status: $e");
+      }
+    }
+
+    // 2. Broadcast ke Live Presence
+    if (_presenceChannel != null) {
+      await _presenceChannel!.track({
+        'nama': namaMahasiswa, 
+        'nim': nim, 
+        'status': status,
+        'violations': _isLockedByViolation ? 3 : 0,
+      });
+      return;
+    }
+
     _presenceChannel = _supabase.channel('exam_monitoring_$ujianId');
-    
+    _presenceChannel!.onPresenceJoin((payload) {
+      debugPrint("Presence joined: $payload");
+    }).onPresenceLeave((payload) {
+      debugPrint("Presence left: $payload");
+    });
+
     _presenceChannel!.onBroadcast(
         event: 'unlock',
         callback: (payload) {
@@ -105,13 +179,27 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
           }
         });
 
-    _presenceChannel!.onPresenceSync((payload) {
-      // Dosen yang butuh list ini, mahasiswa hanya kirim status
-    }).subscribe((status, [error]) async {
-      if (status == 'SUBSCRIBED') {
-        await _presenceChannel!.track({'nama': namaMahasiswa, 'nim': nim, 'status': 'LOCKED'});
+    _presenceChannel!.subscribe((status_event, [error]) async {
+      if (status_event == 'SUBSCRIBED') {
+        await _presenceChannel!.track({
+          'nama': namaMahasiswa, 
+          'nim': nim, 
+          'status': status,
+          'violations': _isLockedByViolation ? 3 : 0,
+        });
       }
     });
+  }
+
+  Future<void> updatePresenceStatus(String namaMahasiswa, String nim, String status) async {
+    if (_presenceChannel != null) {
+      await _presenceChannel!.track({
+        'nama': namaMahasiswa, 
+        'nim': nim, 
+        'status': status,
+        'violations': _isLockedByViolation ? 3 : 0,
+      });
+    }
   }
 
   void unsubscribePresence() {
@@ -134,6 +222,14 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
 
       if (resUjian != null) {
         _activeUjian = UjianModel.fromJson(resUjian);
+
+        final now = DateTime.now();
+        if (now.isBefore(_activeUjian!.waktuMulai)) {
+          throw Exception('BELUM_WAKTUNYA (Sekarang: $now, Jadwal: ${_activeUjian!.waktuMulai})');
+        }
+        if (now.isAfter(_activeUjian!.waktuSelesai)) {
+          throw Exception('WAKTU_HABIS');
+        }
 
         final resSesi = await _supabase
             .from('SESI_PENGERJAAN')
@@ -166,6 +262,8 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
           'id': _activeUjian!.id,
           'judul_ujian': _activeUjian!.judulUjian,
           'durasi_menit': _activeUjian!.durasiMenit,
+          'waktu_mulai': _activeUjian!.waktuMulai.toUtc().toIso8601String(),
+          'waktu_selesai': _activeUjian!.waktuSelesai.toUtc().toIso8601String(),
           'pin_mulai': _activeUjian!.pinMulai,
           'status_lokal': 'WAITING',
         });
@@ -179,6 +277,12 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint("ERROR JOIN: $e");
       if (e.toString().contains('UJIAN_SUDAH_DIKERJAKAN')) {
+        rethrow;
+      }
+      if (e.toString().contains('BELUM_WAKTUNYA')) {
+        rethrow;
+      }
+      if (e.toString().contains('WAKTU_HABIS')) {
         rethrow;
       }
       return null;
@@ -218,6 +322,20 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
       var dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
 
       _daftarSoal = dataLokal.map((s) => SoalModel.fromJson(s)).toList();
+      
+      // Calculate dynamic duration
+      if (_activeUjian != null) {
+         final diff = _activeUjian!.waktuSelesai.difference(DateTime.now());
+         if (diff.isNegative) {
+             _timeRemaining = Duration.zero;
+         } else {
+             final maxDuration = Duration(minutes: _activeUjian!.durasiMenit);
+             _timeRemaining = diff < maxDuration ? diff : maxDuration;
+         }
+      } else {
+         _timeRemaining = const Duration(hours: 2);
+      }
+
       _stopwatch.reset();
       _stopwatch.start();
       _startTimer();
@@ -257,12 +375,6 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
       final listJawabanRaw = await LocalDbService.instance.getJawabanBySesi(
         _currentSesiId!,
       );
-
-      if (listJawabanRaw.isEmpty) {
-        debugPrint("DEBUG: Tidak ada jawaban di lokal.");
-        lastErrorMessage = "Tidak ada jawaban yang tersimpan di perangkat.";
-        return;
-      }
 
       final Map<int, Map<String, dynamic>> uniqueJawabanMap = {};
       for (var item in listJawabanRaw) {
@@ -308,14 +420,25 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         debugPrint("DEBUG: Berhasil kirim ${dataToUpload.length} jawaban.");
       }
 
+      final offlineBox = Hive.box('offline_exams');
+      final waktuKey = 'waktu_selesai_${_currentSesiId}';
+      
+      // Simpan waktu offline jika belum ada
+      if (!offlineBox.containsKey(waktuKey)) {
+        offlineBox.put(waktuKey, DateTime.now().toIso8601String());
+      }
+      
+      final submitTime = offlineBox.get(waktuKey);
+
       await _supabase
           .from('SESI_PENGERJAAN')
           .update({
             'status_pengerjaan': 'SUBMITTED',
-            'submitted_at': DateTime.now().toIso8601String(),
+            'submitted_at': submitTime,
           })
           .eq('id', _currentSesiId!);
 
+      offlineBox.delete(waktuKey); // Bersihkan setelah sukses
       _status = SubmissionStatus.success;
       
       // BERSIHKAN STATE UI & SQLITE SETELAH SUKSES MENGIRIM
@@ -339,6 +462,13 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         _status = SubmissionStatus.idle;
       } else {
         _status = SubmissionStatus.offlineSaved;
+        
+        // Simpan waktu selesai ujian saat offline (sebelum berhasil sync)
+        final offlineBox = Hive.box('offline_exams');
+        final waktuKey = 'waktu_selesai_${_currentSesiId}';
+        if (!offlineBox.containsKey(waktuKey)) {
+          offlineBox.put(waktuKey, DateTime.now().toIso8601String());
+        }
       }
     } finally {
       notifyListeners();
@@ -346,12 +476,17 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   }
 
   // --- KONTROL UI & HELPER ---
+  // Menggunakan _timeRemaining sebagai durasi asli (start time)
+  // Jadi setiap detik, kurangi 1 detik
+  Duration _initialDuration = Duration.zero;
+
   void _startTimer() {
+    _initialDuration = _timeRemaining;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       final elapsed = _stopwatch.elapsed;
-      if (elapsed < _durasiUjian) {
-        _timeRemaining = _durasiUjian - elapsed;
+      if (elapsed < _initialDuration) {
+        _timeRemaining = _initialDuration - elapsed;
         notifyListeners();
       } else {
         _timeRemaining = Duration.zero;

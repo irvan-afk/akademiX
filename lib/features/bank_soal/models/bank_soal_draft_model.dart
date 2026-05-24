@@ -126,6 +126,7 @@ class BankSoalDraftModel {
   final String mataKuliah;
   final String judulUjian;
   final int durasiMenit;
+  final DateTime? waktuMulai;
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -143,6 +144,7 @@ class BankSoalDraftModel {
     required this.mataKuliah,
     required this.judulUjian,
     required this.durasiMenit,
+    this.waktuMulai,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
@@ -162,7 +164,8 @@ class BankSoalDraftModel {
       pinMulai: null,
       mataKuliah: '',
       judulUjian: '',
-      durasiMenit: 90,
+      durasiMenit: 0,
+      waktuMulai: null,
       status: 'draft',
       createdAt: now,
       updatedAt: now,
@@ -201,6 +204,9 @@ class BankSoalDraftModel {
       mataKuliah: bankSoal['mata_kuliah']?.toString() ?? '',
       judulUjian: bankSoal['judul_ujian']?.toString() ?? '',
       durasiMenit: (bankSoal['durasi_menit'] as num? ?? 0).toInt(),
+      waktuMulai: bankSoal['waktu_mulai'] != null 
+          ? DateTime.tryParse(bankSoal['waktu_mulai'].toString()) 
+          : null,
       status: bankSoal['status']?.toString() ?? 'draft',
       createdAt:
           DateTime.tryParse(bankSoal['created_at']?.toString() ?? '') ??
@@ -247,6 +253,7 @@ class BankSoalDraftModel {
     String? mataKuliah,
     String? judulUjian,
     int? durasiMenit,
+    DateTime? waktuMulai,
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -264,6 +271,7 @@ class BankSoalDraftModel {
       mataKuliah: mataKuliah ?? this.mataKuliah,
       judulUjian: judulUjian ?? this.judulUjian,
       durasiMenit: durasiMenit ?? this.durasiMenit,
+      waktuMulai: waktuMulai ?? this.waktuMulai,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

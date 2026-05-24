@@ -23,6 +23,48 @@ class DosenUjianViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> _onlineStudents = [];
   List<Map<String, dynamic>> get onlineStudents => _onlineStudents;
 
+  List<Map<String, dynamic>> _pesertaUjian = [];
+  
+  // Menggabungkan data SESI_PENGERJAAN (peserta yang sudah gabung) dengan Presence (Live Status)
+  List<Map<String, dynamic>> get allMonitoringStudents {
+    List<Map<String, dynamic>> result = [];
+    
+    for (var peserta in _pesertaUjian) {
+      final mahasiswa = peserta['MAHASISWA'] as Map<String, dynamic>? ?? {};
+      final nim = mahasiswa['nim'] as String?;
+      
+      // Cari apakah mahasiswa ini ada di Presence (sedang online/terkunci)
+      final onlineData = _onlineStudents.firstWhere(
+        (element) => element['nim'] == nim,
+        orElse: () => <String, dynamic>{},
+      );
+
+      result.add({
+        'nama': mahasiswa['nama'] ?? 'Unknown',
+        'nim': nim ?? '-',
+        'status_pengerjaan': peserta['status_pengerjaan'], // ONGOING, SUBMITTED
+        'status_live': onlineData.isNotEmpty ? onlineData['status'] : 'OFFLINE', // LOCKED, WAITING, OFFLINE
+        'violations': onlineData.isNotEmpty ? (onlineData['violations'] ?? 0) : 0,
+      });
+    }
+
+    // Jika ada mahasiswa di Presence yang entah kenapa tidak ada di SESI_PENGERJAAN, tampilkan juga
+    for (var online in _onlineStudents) {
+      bool exists = result.any((element) => element['nim'] == online['nim']);
+      if (!exists) {
+        result.add({
+          'nama': online['nama'] ?? 'Unknown',
+          'nim': online['nim'] ?? '-',
+          'status_pengerjaan': 'UNKNOWN',
+          'status_live': online['status'] ?? 'ONLINE',
+          'violations': online['violations'] ?? 0,
+        });
+      }
+    }
+
+    return result;
+  }
+
   // --- GETTERS ---
   List<UjianModel> get allUjianDosen => _allUjianDosen;
   List<Map<String, dynamic>> get publishedExams => _publishedExams;
@@ -131,6 +173,21 @@ class DosenUjianViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> fetchPesertaUjian(int ujianId) async {
+    try {
+      final response = await _supabase
+          .from('SESI_PENGERJAAN')
+          .select(
+            'id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim)',
+          )
+          .eq('ujian_id', ujianId);
+      _pesertaUjian = List<Map<String, dynamic>>.from(response);
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error Fetch Peserta Ujian: $e");
     }
   }
 
@@ -300,9 +357,30 @@ class DosenUjianViewModel extends ChangeNotifier {
     }
   }
 
-  void startMonitoring(int ujianId) {
+  void startMonitoring(int ujianId) async {
     if (_monitoringChannel != null) return;
+    
+    // Ambil data awal seluruh peserta yang sudah mendaftar/mengunduh
+    await fetchPesertaUjian(ujianId);
+
     _monitoringChannel = _supabase.channel('exam_monitoring_$ujianId');
+    
+    // Dengarkan perubahan database secara real-time (Insert Join Ujian / Update Submit)
+    _monitoringChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.all,
+      schema: 'public',
+      table: 'SESI_PENGERJAAN',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'ujian_id',
+        value: ujianId,
+      ),
+      callback: (payload) {
+        debugPrint("DB Change detected, refetching peserta...");
+        fetchPesertaUjian(ujianId);
+      },
+    );
+
     _monitoringChannel!.onPresenceSync((payload) {
       final newState = _monitoringChannel!.presenceState();
       List<Map<String, dynamic>> currentOnline = [];
@@ -314,6 +392,7 @@ class DosenUjianViewModel extends ChangeNotifier {
                'nama': presence.payload['nama'],
                'nim': presence.payload['nim'],
                'status': presence.payload['status'],
+               'violations': presence.payload['violations'] ?? 0,
              });
           }
         }
@@ -325,15 +404,40 @@ class DosenUjianViewModel extends ChangeNotifier {
 
   Future<void> unlockStudent(String nim) async {
     if (_monitoringChannel != null) {
+      await _monitoringChannel!.sendBroadcastMessage(
+        event: 'unlock',
+        payload: {'nim': nim},
+      );
+      
+      // Update database agar statusnya kembali ONGOING (hapus efek LOCKED dari DB)
       try {
-        await _monitoringChannel!.sendBroadcastMessage(
-          event: 'unlock',
-          payload: {'nim': nim},
-        );
-        debugPrint("DEBUG: Broadcast unlock sent to $nim");
+        final mahasiswaRes = await _supabase
+            .from('MAHASISWA')
+            .select('id')
+            .eq('nim', nim)
+            .single();
+            
+        if (mahasiswaRes.isNotEmpty) {
+          final mahasiswaId = mahasiswaRes['id'];
+          // Kita butuh ujianId, ambil dari parameter channel atau ambil semua SESI ujian ini
+          // Lebih mudah mengupdate semua sesi_pengerjaan milik mhs ini yang statusnya LOCKED
+          await _supabase
+              .from('SESI_PENGERJAAN')
+              .update({'status_pengerjaan': 'ONGOING'})
+              .eq('mahasiswa_id', mahasiswaId)
+              .eq('status_pengerjaan', 'LOCKED');
+              
+          // Refresh list lokal agar warna Merah langsung hilang
+          int index = _pesertaUjian.indexWhere((p) => p['MAHASISWA']['id'] == mahasiswaId);
+          if (index != -1) {
+            _pesertaUjian[index]['status_pengerjaan'] = 'ONGOING';
+            notifyListeners();
+          }
+        }
       } catch (e) {
-        debugPrint("DEBUG ERROR sending broadcast: $e");
+        debugPrint("Error unlockStudent DB Update: $e");
       }
+      debugPrint("DEBUG: Broadcast unlock sent to $nim");
     }
   }
 

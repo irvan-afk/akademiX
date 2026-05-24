@@ -62,7 +62,8 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
       vm.subscribeToPresence(
         widget.ujianId, 
         authVm.userData?['nama'] ?? "Unknown", 
-        authVm.userData?['nim'] ?? "000000"
+        authVm.userData?['nim'] ?? "000000",
+        'WAITING'
       );
     } else {
       // Offline, lepaskan koneksi server

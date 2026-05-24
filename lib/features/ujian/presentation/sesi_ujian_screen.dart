@@ -25,9 +25,7 @@ class UjianScreen extends StatefulWidget {
 
 class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   late StreamSubscription<dynamic> _connectivitySubscription;
-  int _violationCount = 0;
-  bool _isWarningDialogShowing = false;
-  bool _isInternetDialogShowing = false;
+  bool _isLockDialogShowing = false;
   @override
   void initState() {
     super.initState();
@@ -35,9 +33,13 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     _initSecurityFeatures();
 
     // Memulai ujian saat layar dibuka
-    Future.microtask(
-      () => context.read<MahasiswaUjianViewModel>().startUjian(widget.ujianId),
-    );
+    Future.microtask(() {
+      final vm = context.read<MahasiswaUjianViewModel>();
+      vm.startUjian(widget.ujianId);
+      if (vm.isLockedByViolation) {
+        _showLockDialog();
+      }
+    });
   }
 
   Future<void> _initSecurityFeatures() async {
@@ -49,27 +51,43 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     await ScreenProtector.protectDataLeakageWithBlur(); // For iOS
 
     // 2. Anti-Internet
-    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
-      List<ConnectivityResult> results,
-    ) {
+    void handleOnlineDetection(bool isOnline) {
       final vm = context.read<MahasiswaUjianViewModel>();
       final authVm = context.read<AuthViewModel>();
 
-      if (results.contains(ConnectivityResult.mobile) ||
-          results.contains(ConnectivityResult.wifi)) {
-        _showInternetWarningDialog();
+      if (isOnline) {
+        if (!vm.isUnlockedByDosen) {
+          vm.triggerLock();
+        }
+        
         vm.subscribeToPresence(
           widget.ujianId,
           authVm.userData?['nama'] ?? "Unknown",
           authVm.userData?['nim'] ?? "000000",
+          'LOCKED'
         );
+
+        if (vm.isLockedByViolation) {
+          _showLockDialog();
+        }
       } else {
         vm.unsubscribePresence();
-        if (_isInternetDialogShowing && mounted) {
+        if (_isLockDialogShowing && vm.isUnlockedByDosen && mounted) {
+          vm.resetUnlockStatus(); // PENTING: Harus direset agar bisa mengunci lagi nanti!
           Navigator.of(context, rootNavigator: true).pop();
-          _isInternetDialogShowing = false;
+          _isLockDialogShowing = false;
         }
       }
+    }
+
+    // Pengecekan manual saat awal (jika internet sudah menyala sejak layar dibuka)
+    final initialResults = await Connectivity().checkConnectivity();
+    handleOnlineDetection(initialResults.contains(ConnectivityResult.mobile) || initialResults.contains(ConnectivityResult.wifi));
+
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((
+      List<ConnectivityResult> results,
+    ) {
+      handleOnlineDetection(results.contains(ConnectivityResult.mobile) || results.contains(ConnectivityResult.wifi));
     });
   }
 
@@ -93,16 +111,16 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
   }
 
   void _handleViolation() {
-    // Segera submit ujian jika menekan tombol home / keluar aplikasi
-    context.read<MahasiswaUjianViewModel>().submitUjian();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/submission-result');
+    final vm = context.read<MahasiswaUjianViewModel>();
+    if (!vm.isUnlockedByDosen) {
+      vm.triggerLock();
+      _showLockDialog();
     }
   }
 
-  void _showInternetWarningDialog() {
-    if (!_isInternetDialogShowing && mounted) {
-      _isInternetDialogShowing = true;
+  void _showLockDialog() {
+    if (!_isLockDialogShowing && mounted) {
+      _isLockDialogShowing = true;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -136,9 +154,16 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                 content: Text(
                   vm.isUnlockedByDosen
                       ? "Dosen telah membuka kunci ujian Anda.\n\nSilakan matikan WiFi atau Data Seluler Anda sekarang untuk melanjutkan ujian."
-                      : "Koneksi internet terdeteksi! Layar ujian dikunci untuk mencegah kecurangan.\n\nHarap hubungi Dosen Pengawas untuk membukakan kunci Anda (Tetap nyalakan internet agar sinyal pembukaan kunci bisa diterima).",
+                      : "Anda telah melakukan pelanggaran (Menyalakan Internet / Keluar Aplikasi / Membuka Notifikasi). Layar ujian dikunci otomatis untuk mencegah kecurangan.\n\nHarap hubungi Dosen Pengawas untuk membukakan kunci Anda (Tetap nyalakan internet agar sinyal pembukaan kunci bisa diterima).",
                 ),
                 actions: [
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade300),
+                    onPressed: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    },
+                    child: const Text("Kembali ke Beranda", style: TextStyle(color: Colors.black87)),
+                  ),
                   if (vm.isUnlockedByDosen)
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -149,7 +174,7 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
                           if (context.mounted) {
                             vm.resetUnlockStatus();
                             Navigator.of(context, rootNavigator: true).pop();
-                            _isInternetDialogShowing = false;
+                            _isLockDialogShowing = false;
                           }
                         } else {
                           if (context.mounted) {
