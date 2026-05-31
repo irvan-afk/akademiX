@@ -144,10 +144,32 @@ class DosenUjianViewModel extends ChangeNotifier {
     try {
       final response = await _supabase
           .from('UJIAN')
-          .select('id, judul_ujian, status_ujian, waktu_mulai')
-          .eq('status_ujian', 'PUBLISHED')
+          .select('id, judul_ujian, status_ujian, waktu_mulai, waktu_selesai')
+          .inFilter('status_ujian', ['PUBLISHED', 'CLOSED'])
           .order('waktu_mulai', ascending: false);
-      _publishedExams = List<Map<String, dynamic>>.from(response);
+          
+      final now = DateTime.now().toUtc();
+      List<Map<String, dynamic>> updatedExams = [];
+
+      for (var ujian in (response as List)) {
+        var mutableUjian = Map<String, dynamic>.from(ujian);
+        
+        if (mutableUjian['status_ujian'] == 'PUBLISHED' && mutableUjian['waktu_selesai'] != null) {
+          final waktuSelesai = DateTime.parse(mutableUjian['waktu_selesai']).toUtc();
+          if (now.isAfter(waktuSelesai)) {
+            // Update to CLOSED in Supabase
+            await _supabase
+                .from('UJIAN')
+                .update({'status_ujian': 'CLOSED'})
+                .eq('id', mutableUjian['id']);
+                
+            mutableUjian['status_ujian'] = 'CLOSED';
+          }
+        }
+        updatedExams.add(mutableUjian);
+      }
+      
+      _publishedExams = updatedExams;
     } catch (e) {
       debugPrint("Error Fetch Published: $e");
     } finally {

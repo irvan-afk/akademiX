@@ -8,7 +8,7 @@ import '../../ujian/presentation/publish_bank_soal_screen.dart';
 import '../../ujian/presentation/pilih_ujian_view.dart';
 import '../../ujian/view_models/dosen_ujian_view_model.dart';
 import '../../ujian/presentation/monitoring_ujian_screen.dart';
-
+import '../../ujian/presentation/rekap_nilai_view.dart';
 class DashboardDosenScreen extends StatefulWidget {
   const DashboardDosenScreen({super.key});
 
@@ -148,6 +148,11 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
   }
 
   Widget _buildRiwayatPage() {
+    final vm = context.watch<DosenUjianViewModel>();
+    final closedExams = vm.publishedExams
+        .where((ujian) => ujian['status_ujian'] == 'CLOSED')
+        .toList();
+
     return SafeArea(
       child: Column(
         children: [
@@ -170,13 +175,57 @@ class _DashboardDosenScreenState extends State<DashboardDosenScreen> {
             ),
           ),
           // Content
-          const Expanded(
-            child: Center(
-              child: Text(
-                "Fitur Riwayat akan segera hadir",
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            ),
+          Expanded(
+            child: vm.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : closedExams.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "Belum ada riwayat ujian yang selesai (CLOSED).",
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        itemCount: closedExams.length,
+                        itemBuilder: (context, index) {
+                          final ujian = closedExams[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                              child: ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.history, color: Colors.red),
+                                ),
+                                title: Text(
+                                  ujian['judul_ujian'] ?? 'Ujian',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: const Text("Status: CLOSED"),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => RekapNilaiView(
+                                        ujianId: ujian['id'],
+                                        judulUjian: ujian['judul_ujian'],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),

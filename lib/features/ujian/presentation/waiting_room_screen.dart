@@ -72,6 +72,19 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
   }
 
   void _verifikasiPin() async {
+    final vm = context.read<MahasiswaUjianViewModel>();
+    final activeUjian = vm.activeUjian;
+
+    if (activeUjian != null && DateTime.now().toUtc().isAfter(activeUjian.waktuSelesai.toUtc())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Waktu ujian telah habis! Tidak dapat masuk ke sesi ujian."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final pinInput = _pinController.text.trim();
     if (pinInput == _pinBenar) {
       await LocalDbService.instance.updateUjianStatusLokal(widget.ujianId, 'ACTIVE');

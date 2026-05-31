@@ -40,7 +40,15 @@ class _PilihUjianViewState extends State<PilihUjianView> {
 
     final filteredExams = vm.publishedExams.where((ujian) {
       final judul = ujian['judul_ujian'].toString().toLowerCase();
-      return judul.contains(_searchQuery.toLowerCase());
+      final isMatchSearch = judul.contains(_searchQuery.toLowerCase());
+      
+      if (widget.isForRekap) {
+        // Rekap Nilai shows CLOSED exams (and PUBLISHED if you want, but user asked for CLOSED in rekap)
+        return isMatchSearch && (ujian['status_ujian'] == 'CLOSED' || ujian['status_ujian'] == 'PUBLISHED');
+      } else {
+        // Koreksi Essai shows only PUBLISHED
+        return isMatchSearch && ujian['status_ujian'] == 'PUBLISHED';
+      }
     }).toList();
 
     return Scaffold(
