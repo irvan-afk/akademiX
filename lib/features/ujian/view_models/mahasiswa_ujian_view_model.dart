@@ -109,6 +109,11 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
         _isLockedByViolation = true;
         notifyListeners();
       }
+    } else {
+      _activeUjian = null;
+      _currentSesiId = null;
+      _status = SubmissionStatus.idle;
+      notifyListeners();
     }
   }
 

@@ -51,75 +51,78 @@ class _RiwayatMahasiswaViewState extends State<RiwayatMahasiswaView> {
               style: TextStyle(color: Colors.grey),
             ),
           )
-        : ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: _riwayat.length,
-            itemBuilder: (context, index) {
-              final item = _riwayat[index];
-              final ujian = item['UJIAN'] as Map<String, dynamic>?;
-              final tampilkanNilai = ujian?['tampilkan_nilai'] == true;
+        : RefreshIndicator(
+            onRefresh: _loadRiwayat,
+            child: ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: _riwayat.length,
+              itemBuilder: (context, index) {
+                final item = _riwayat[index];
+                final ujian = item['UJIAN'] as Map<String, dynamic>?;
+                final tampilkanNilai = ujian?['tampilkan_nilai'] == true;
 
-              int totalSkor = 0;
-              if (item['JAWABAN_MAHASISWA'] != null) {
-                for (var j in item['JAWABAN_MAHASISWA']) {
-                  totalSkor += (j['nilai'] as num?)?.toInt() ?? 0;
+                int totalSkor = 0;
+                if (item['JAWABAN_MAHASISWA'] != null) {
+                  for (var j in item['JAWABAN_MAHASISWA']) {
+                    totalSkor += (j['nilai'] as num?)?.toInt() ?? 0;
+                  }
                 }
-              }
 
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AkademixCard(
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
-                        borderRadius: BorderRadius.circular(10),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: AkademixCard(
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.history,
+                          color: Color(0xFF2962FF),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.history,
-                        color: Color(0xFF2962FF),
+                      title: Text(
+                        ujian?['judul_ujian'] ?? 'Ujian',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    title: Text(
-                      ujian?['judul_ujian'] ?? 'Ujian',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      "Selesai: ${item['submitted_at'] != null ? DateTime.parse(item['submitted_at']).toLocal().toString().substring(0, 16) : '-'}",
-                    ),
-                    trailing: tampilkanNilai
-                        ? Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                "SKOR",
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
+                      subtitle: Text(
+                        "Selesai: ${item['submitted_at'] != null ? DateTime.parse(item['submitted_at']).toLocal().toString().substring(0, 16) : '-'}",
+                      ),
+                      trailing: tampilkanNilai
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "SKOR",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                "$totalSkor",
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2962FF),
+                                Text(
+                                  "$totalSkor",
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2962FF),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          )
-                        : const Icon(
-                            Icons.check_circle,
-                            color: Colors.green,
-                            size: 20,
-                          ),
+                              ],
+                            )
+                          : const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
   }
 }

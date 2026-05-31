@@ -185,13 +185,18 @@ class BerandaContent extends StatelessWidget {
       children: [
         _buildHeader(namaMahasiswa, context),
         Expanded(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 20,
-              ),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              final authVm = context.read<AuthViewModel>();
+              await context.read<MahasiswaUjianViewModel>().checkOfflineSubmission(mahasiswaId: authVm.mahasiswaId);
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 20,
+                ),
               child: Column(
                 children: [
                   if (ujianVm.activeUjian != null)
@@ -203,9 +208,9 @@ class BerandaContent extends StatelessWidget {
                     _buildJoinCard(context),
                   const SizedBox(height: 30),
                 ],
-              ),
             ),
           ),
+        ),
         ),
       ],
     );
@@ -363,14 +368,64 @@ class BerandaContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "PAKET TERUNDUH",
-            style: TextStyle(
-              color: Color(0xFF2962FF),
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "PAKET TERUNDUH",
+                style: TextStyle(
+                  color: Color(0xFF2962FF),
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                  tooltip: "Hapus Ujian Lokal",
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text("Hapus Ujian Lokal?"),
+                        content: const Text(
+                          "Apakah Anda yakin ingin menghapus ujian ini dari perangkat? Lakukan ini jika ujian error atau sudah dihapus oleh Dosen.",
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text("Batal"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true && context.mounted) {
+                      await LocalDbService.instance.clearAllLokalData();
+                      if (context.mounted) {
+                        final authVm = context.read<AuthViewModel>();
+                        context.read<MahasiswaUjianViewModel>().checkOfflineSubmission(mahasiswaId: authVm.mahasiswaId);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Data ujian lokal berhasil dihapus.")),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
@@ -419,61 +474,7 @@ class BerandaContent extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text("Hapus Ujian Lokal?"),
-                    content: const Text(
-                      "Apakah Anda yakin ingin menghapus ujian ini dari perangkat? Lakukan ini jika ujian error atau sudah dihapus oleh Dosen.",
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text("Batal"),
-                      ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text("Hapus", style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (confirm == true && context.mounted) {
-                  // Hapus dari SQLite lokal
-                  await LocalDbService.instance.clearAllLokalData();
-                  
-                  if (context.mounted) {
-                    final authVm = context.read<AuthViewModel>();
-                    context.read<MahasiswaUjianViewModel>().checkOfflineSubmission(mahasiswaId: authVm.mahasiswaId);
-                    
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Data ujian lokal berhasil dihapus."),
-                      ),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              label: const Text(
-                "HAPUS UJIAN LOKAL",
-                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-            ),
-          ),
+          // Removed the large OutlinedButton from here
         ],
       ),
     );
