@@ -228,7 +228,7 @@ class LocalDbService {
     );
   }
 
-  Future<Map<String, dynamic>?> getLatestBankSoalDraft({
+  Future<Map<String, dynamic>?> getLatestBankSoal({
     required int? dosenId,
   }) async {
     await _ensureBankSoalTables();
@@ -260,7 +260,7 @@ class LocalDbService {
     return {'bank_soal': draftMap, 'soal': soalItems};
   }
 
-  Future<Map<String, dynamic>?> getBankSoalDraftByRemoteUjianId(
+  Future<Map<String, dynamic>?> getBankSoalByRemoteUjianId(
     int remoteUjianId,
   ) async {
     await _ensureBankSoalTables();
@@ -289,7 +289,7 @@ class LocalDbService {
     return {'bank_soal': draftMap, 'soal': soalItems};
   }
 
-  Future<int> saveBankSoalDraft({
+  Future<int> saveBankSoal({
     required int? id,
     required int? dosenId,
     required int? pengampuId,

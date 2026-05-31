@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../core/widgets/akademix_card.dart';
 import '../../auth/view_models/auth_view_model.dart';
-import '../models/bank_soal_draft_model.dart';
+import '../models/bank_soal_model.dart';
 import '../view_models/bank_soal_view_model.dart';
 
 class BuatBankSoalScreen extends StatefulWidget {
@@ -726,12 +726,12 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
     );
   }
 
-  Future<BankSoalQuestionDraft?> _showQuestionForm(
+  Future<BankSoalQuestionModel?> _showQuestionForm(
     BuildContext context, {
     String? tipeSoal,
-    BankSoalQuestionDraft? initialQuestion,
+    BankSoalQuestionModel? initialQuestion,
   }) {
-    return showModalBottomSheet<BankSoalQuestionDraft>(
+    return showModalBottomSheet<BankSoalQuestionModel>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -747,7 +747,7 @@ class _BuatBankSoalScreenState extends State<BuatBankSoalScreen> {
 
 class _BankSoalItemCard extends StatelessWidget {
   final int index;
-  final BankSoalQuestionDraft question;
+  final BankSoalQuestionModel question;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -911,7 +911,7 @@ class _BankSoalItemCard extends StatelessWidget {
 
 class _QuestionFormSheet extends StatefulWidget {
   final String tipeSoal;
-  final BankSoalQuestionDraft? initialQuestion;
+  final BankSoalQuestionModel? initialQuestion;
 
   const _QuestionFormSheet({required this.tipeSoal, this.initialQuestion});
 
@@ -1335,7 +1335,7 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
 
       Navigator.pop(
         context,
-        BankSoalQuestionDraft(
+        BankSoalQuestionModel(
           localId:
               widget.initialQuestion?.localId ??
               DateTime.now().microsecondsSinceEpoch,
@@ -1352,7 +1352,7 @@ class _QuestionFormSheetState extends State<_QuestionFormSheet> {
 
     Navigator.pop(
       context,
-      BankSoalQuestionDraft(
+      BankSoalQuestionModel(
         localId:
             widget.initialQuestion?.localId ??
             DateTime.now().microsecondsSinceEpoch,

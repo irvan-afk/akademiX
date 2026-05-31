@@ -1,4 +1,4 @@
-class BankSoalQuestionDraft {
+class BankSoalQuestionModel {
   final int localId;
   final String tipeSoal;
   final String teksSoal;
@@ -7,7 +7,7 @@ class BankSoalQuestionDraft {
   final int poin;
   final String? catatan;
 
-  const BankSoalQuestionDraft({
+  const BankSoalQuestionModel({
     required this.localId,
     required this.tipeSoal,
     required this.teksSoal,
@@ -19,7 +19,7 @@ class BankSoalQuestionDraft {
 
   bool get isPilihanGanda => tipeSoal == 'pilihan_ganda';
 
-  factory BankSoalQuestionDraft.fromMap(Map<String, dynamic> map) {
+  factory BankSoalQuestionModel.fromMap(Map<String, dynamic> map) {
     final opsiRaw = map['opsi_jawaban'];
     final opsi = <String, String>{};
 
@@ -29,7 +29,7 @@ class BankSoalQuestionDraft {
       });
     }
 
-    return BankSoalQuestionDraft(
+    return BankSoalQuestionModel(
       localId: map['local_id'] as int? ?? map['id'] as int? ?? 0,
       tipeSoal: (map['tipe_soal'] ?? '').toString(),
       teksSoal: (map['teks_soal'] ?? '').toString(),
@@ -52,7 +52,7 @@ class BankSoalQuestionDraft {
     };
   }
 
-  BankSoalQuestionDraft copyWith({
+  BankSoalQuestionModel copyWith({
     int? localId,
     String? tipeSoal,
     String? teksSoal,
@@ -61,7 +61,7 @@ class BankSoalQuestionDraft {
     int? poin,
     String? catatan,
   }) {
-    return BankSoalQuestionDraft(
+    return BankSoalQuestionModel(
       localId: localId ?? this.localId,
       tipeSoal: tipeSoal ?? this.tipeSoal,
       teksSoal: teksSoal ?? this.teksSoal,
@@ -114,7 +114,7 @@ class BankSoalPengampuOption {
   }
 }
 
-class BankSoalDraftModel {
+class BankSoalModel {
   final int? id;
   final int? dosenId;
   final int? pengampuId;
@@ -130,9 +130,9 @@ class BankSoalDraftModel {
   final String status;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final List<BankSoalQuestionDraft> questions;
+  final List<BankSoalQuestionModel> questions;
 
-  const BankSoalDraftModel({
+  const BankSoalModel({
     this.id,
     this.dosenId,
     this.pengampuId,
@@ -151,9 +151,9 @@ class BankSoalDraftModel {
     required this.questions,
   });
 
-  factory BankSoalDraftModel.empty({int? dosenId}) {
+  factory BankSoalModel.empty({int? dosenId}) {
     final now = DateTime.now();
-    return BankSoalDraftModel(
+    return BankSoalModel(
       id: null,
       dosenId: dosenId,
       pengampuId: null,
@@ -188,11 +188,11 @@ class BankSoalDraftModel {
       judulUjian.trim().isNotEmpty &&
       durasiMenit > 0;
 
-  factory BankSoalDraftModel.fromMap(
+  factory BankSoalModel.fromMap(
     Map<String, dynamic> bankSoal,
     List<Map<String, dynamic>> soal,
   ) {
-    return BankSoalDraftModel(
+    return BankSoalModel(
       id: bankSoal['id'] as int?,
       dosenId: bankSoal['dosen_id'] as int?,
       pengampuId: bankSoal['pengampu_id'] as int?,
@@ -214,7 +214,7 @@ class BankSoalDraftModel {
       updatedAt:
           DateTime.tryParse(bankSoal['updated_at']?.toString() ?? '') ??
           DateTime.now(),
-      questions: soal.map(BankSoalQuestionDraft.fromMap).toList(),
+      questions: soal.map(BankSoalQuestionModel.fromMap).toList(),
     );
   }
 
@@ -241,7 +241,7 @@ class BankSoalDraftModel {
     return questions.map((item) => item.toMap()).toList();
   }
 
-  BankSoalDraftModel copyWith({
+  BankSoalModel copyWith({
     int? id,
     int? dosenId,
     int? pengampuId,
@@ -257,9 +257,9 @@ class BankSoalDraftModel {
     String? status,
     DateTime? createdAt,
     DateTime? updatedAt,
-    List<BankSoalQuestionDraft>? questions,
+    List<BankSoalQuestionModel>? questions,
   }) {
-    return BankSoalDraftModel(
+    return BankSoalModel(
       id: id ?? this.id,
       dosenId: dosenId ?? this.dosenId,
       pengampuId: pengampuId ?? this.pengampuId,
