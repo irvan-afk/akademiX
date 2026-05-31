@@ -2,8 +2,9 @@ import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/constants/supabase_constants.dart';
 import '../models/bank_soal_model.dart';
+import 'bank_soal_gateway.dart';
 
-class BankSoalService {
+class BankSoalService implements BankSoalGateway {
   final SupabaseClient _supabase = supabase;
 
   String generateRandomCode() {
@@ -17,10 +18,12 @@ class BankSoalService {
   Future<List<Map<String, dynamic>>> getPengampuForDosen(int dosenId) async {
     final response = await _supabase
         .from('PENGAMPU')
-        .select('id, mata_kuliah_id, kelas_id, KELAS(nama, angkatan), MATA_KULIAH(nama)')
+        .select(
+          'id, mata_kuliah_id, kelas_id, KELAS(nama, angkatan), MATA_KULIAH(nama)',
+        )
         .eq('dosen_id', dosenId)
         .order('id', ascending: false);
-    
+
     return List<Map<String, dynamic>>.from(response as List);
   }
 
@@ -43,7 +46,9 @@ class BankSoalService {
             'status_ujian': publish ? 'PUBLISHED' : 'DRAFT',
             'kode_ujian': publish ? generateRandomCode() : null,
             'kode_pengawasan': publish ? generateRandomCode() : null,
-            'pin_mulai': publish ? (1000 + Random().nextInt(9000)).toString() : null,
+            'pin_mulai': publish
+                ? (1000 + Random().nextInt(9000)).toString()
+                : null,
           })
           .select('id, kode_ujian, kode_pengawasan, pin_mulai')
           .single();
@@ -72,7 +77,10 @@ class BankSoalService {
     }
   }
 
-  Future<void> replaceSoalForUjian(int ujianId, List<Map<String, dynamic>> soalRows) async {
+  Future<void> replaceSoalForUjian(
+    int ujianId,
+    List<Map<String, dynamic>> soalRows,
+  ) async {
     await _supabase.from('soal').delete().eq('ujian_id', ujianId);
     if (soalRows.isNotEmpty) {
       await _supabase.from('soal').insert(soalRows);

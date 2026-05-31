@@ -2,8 +2,9 @@ import 'dart:convert';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:flutter/foundation.dart';
+import 'local_db_gateway.dart';
 
-class LocalDbService {
+class LocalDbService implements LocalDbGateway {
   static final LocalDbService instance = LocalDbService._init();
   static Database? _database;
 

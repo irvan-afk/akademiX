@@ -4,14 +4,25 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive/hive.dart';
 import '../models/ujian_model.dart';
 import '../models/soal_model.dart';
+import 'package:akademix/core/database/local_db_gateway.dart';
 import 'package:akademix/core/database/local_db_service.dart';
 import 'package:akademix/core/constants/app_enums.dart';
 import '../services/mahasiswa_ujian_service.dart';
+import 'package:flutter/foundation.dart';
 
 enum SubmissionStatus { idle, loading, offlineSaved, success }
 
 class MahasiswaUjianController extends ChangeNotifier {
-  final MahasiswaUjianService _service = MahasiswaUjianService();
+  MahasiswaUjianController({
+    MahasiswaUjianService? service,
+    LocalDbGateway? localDb,
+    this.enableTimer = true,
+  }) : _service = service ?? MahasiswaUjianService(),
+       _localDb = localDb ?? LocalDbService.instance;
+
+  final MahasiswaUjianService _service;
+  final LocalDbGateway _localDb;
+  final bool enableTimer;
   RealtimeChannel? _presenceChannel;
 
   bool _isLoading = false;
@@ -45,12 +56,14 @@ class MahasiswaUjianController extends ChangeNotifier {
     final exams = await db.query('ujian_lokal');
     if (exams.isNotEmpty) {
       final exam = exams.first;
-      
+
       if (mahasiswaId != null) {
         try {
-          final remoteStatus = await _service.checkSesiPengerjaanStatus(exam['id'] as int, mahasiswaId);
+          final remoteStatus = await _service.checkSesiPengerjaanStatus(
+            exam['id'] as int,
+            mahasiswaId,
+          );
           if (remoteStatus == 'SUBMITTED') {
-            debugPrint("Ujian sudah disubmit di server. Membersihkan data lokal yang nyangkut...");
             await LocalDbService.instance.clearAllLokalData();
             _activeUjian = null;
             _currentSesiId = null;
@@ -58,42 +71,48 @@ class MahasiswaUjianController extends ChangeNotifier {
             notifyListeners();
             return;
           }
-        } catch (e) {
-          debugPrint("Gagal verifikasi status sinkronisasi ke server (Offline): $e");
-        }
+        } catch (_) {}
       }
 
       final answers = await db.query('jawaban_lokal');
       if (answers.isNotEmpty) {
         _activeUjian = UjianModel(
-           id: exam['id'] as int,
-           judulUjian: exam['judul_ujian'] as String,
-           pengampuId: 0,
-           waktuMulai: exam['waktu_mulai'] != null ? DateTime.parse(exam['waktu_mulai'] as String) : DateTime.now(),
-           waktuSelesai: exam['waktu_selesai'] != null ? DateTime.parse(exam['waktu_selesai'] as String) : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
-           durasiMenit: exam['durasi'] as int,
-           statusUjian: UjianStatus.published,
-           pinMulai: exam['pin_mulai'] as String?,
-           statusLokal: exam['status_lokal'] as String? ?? 'ACTIVE',
+          id: exam['id'] as int,
+          judulUjian: exam['judul_ujian'] as String,
+          pengampuId: 0,
+          waktuMulai: exam['waktu_mulai'] != null
+              ? DateTime.parse(exam['waktu_mulai'] as String)
+              : DateTime.now(),
+          waktuSelesai: exam['waktu_selesai'] != null
+              ? DateTime.parse(exam['waktu_selesai'] as String)
+              : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
+          durasiMenit: exam['durasi'] as int,
+          statusUjian: UjianStatus.published,
+          pinMulai: exam['pin_mulai'] as String?,
+          statusLokal: exam['status_lokal'] as String? ?? 'ACTIVE',
         );
         _currentSesiId = answers.first['sesi_pengerjaan_id'] as int;
         _status = SubmissionStatus.offlineSaved;
         notifyListeners();
       } else {
         _activeUjian = UjianModel(
-           id: exam['id'] as int,
-           judulUjian: exam['judul_ujian'] as String,
-           pengampuId: 0,
-           waktuMulai: exam['waktu_mulai'] != null ? DateTime.parse(exam['waktu_mulai'] as String) : DateTime.now(),
-           waktuSelesai: exam['waktu_selesai'] != null ? DateTime.parse(exam['waktu_selesai'] as String) : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
-           durasiMenit: exam['durasi'] as int,
-           statusUjian: UjianStatus.published,
-           pinMulai: exam['pin_mulai'] as String?,
-           statusLokal: exam['status_lokal'] as String? ?? 'WAITING',
+          id: exam['id'] as int,
+          judulUjian: exam['judul_ujian'] as String,
+          pengampuId: 0,
+          waktuMulai: exam['waktu_mulai'] != null
+              ? DateTime.parse(exam['waktu_mulai'] as String)
+              : DateTime.now(),
+          waktuSelesai: exam['waktu_selesai'] != null
+              ? DateTime.parse(exam['waktu_selesai'] as String)
+              : DateTime.now().add(Duration(minutes: exam['durasi'] as int)),
+          durasiMenit: exam['durasi'] as int,
+          statusUjian: UjianStatus.published,
+          pinMulai: exam['pin_mulai'] as String?,
+          statusLokal: exam['status_lokal'] as String? ?? 'WAITING',
         );
         notifyListeners();
       }
-      
+
       if (_activeUjian?.statusLokal == 'LOCKED') {
         _isLockedByViolation = true;
         notifyListeners();
@@ -112,38 +131,44 @@ class MahasiswaUjianController extends ChangeNotifier {
   bool _isLockedByViolation = false;
   bool get isLockedByViolation => _isLockedByViolation;
 
-  void triggerLock() async {
+  Future<void> triggerLock() async {
     if (!_isLockedByViolation) {
       _isLockedByViolation = true;
       if (_activeUjian != null) {
-        await LocalDbService.instance.updateUjianStatusLokal(_activeUjian!.id, 'LOCKED');
+        await _localDb.updateUjianStatusLokal(_activeUjian!.id, 'LOCKED');
       }
       notifyListeners();
     }
   }
 
-  void resetUnlockStatus() async {
+  Future<void> resetUnlockStatus() async {
     _isUnlockedByDosen = false;
     _isLockedByViolation = false;
     if (_activeUjian != null) {
-      await LocalDbService.instance.updateUjianStatusLokal(_activeUjian!.id, 'ACTIVE');
+      await _localDb.updateUjianStatusLokal(_activeUjian!.id, 'ACTIVE');
     }
     notifyListeners();
   }
 
-  void subscribeToPresence(int ujianId, String namaMahasiswa, String nim, String status) async {
+  void subscribeToPresence(
+    int ujianId,
+    String namaMahasiswa,
+    String nim,
+    String status,
+  ) async {
     if (_currentSesiId != null) {
       try {
-        await _service.updateSesiPengerjaanStatus(_currentSesiId!, status == 'LOCKED' ? 'REJECTED' : 'ACTIVE');
-      } catch (e) {
-        debugPrint("Gagal update remote lock status: $e");
-      }
+        await _service.updateSesiPengerjaanStatus(
+          _currentSesiId!,
+          status == 'LOCKED' ? 'REJECTED' : 'ACTIVE',
+        );
+      } catch (_) {}
     }
 
     if (_presenceChannel != null) {
       await _presenceChannel!.track({
-        'nama': namaMahasiswa, 
-        'nim': nim, 
+        'nama': namaMahasiswa,
+        'nim': nim,
         'status': status,
         'violations': _isLockedByViolation ? 3 : 0,
       });
@@ -151,27 +176,25 @@ class MahasiswaUjianController extends ChangeNotifier {
     }
 
     _presenceChannel = _service.getPresenceChannel(ujianId);
-    _presenceChannel!.onPresenceJoin((payload) {
-      debugPrint("Presence joined: $payload");
-    }).onPresenceLeave((payload) {
-      debugPrint("Presence left: $payload");
-    });
+    _presenceChannel!
+        .onPresenceJoin((_) {})
+        .onPresenceLeave((_) {});
 
     _presenceChannel!.onBroadcast(
-        event: 'unlock',
-        callback: (payload) {
-          if (payload['nim'] == nim) {
-            debugPrint("DEBUG: Received unlock signal from Dosen");
-            _isUnlockedByDosen = true;
-            notifyListeners();
-          }
-        });
+      event: 'unlock',
+      callback: (payload) {
+        if (payload['nim'] == nim) {
+          _isUnlockedByDosen = true;
+          notifyListeners();
+        }
+      },
+    );
 
     _presenceChannel!.subscribe((status_event, [error]) async {
       if (status_event == 'SUBSCRIBED') {
         await _presenceChannel!.track({
-          'nama': namaMahasiswa, 
-          'nim': nim, 
+          'nama': namaMahasiswa,
+          'nim': nim,
           'status': status,
           'violations': _isLockedByViolation ? 3 : 0,
         });
@@ -179,11 +202,15 @@ class MahasiswaUjianController extends ChangeNotifier {
     });
   }
 
-  Future<void> updatePresenceStatus(String namaMahasiswa, String nim, String status) async {
+  Future<void> updatePresenceStatus(
+    String namaMahasiswa,
+    String nim,
+    String status,
+  ) async {
     if (_presenceChannel != null) {
       await _presenceChannel!.track({
-        'nama': namaMahasiswa, 
-        'nim': nim, 
+        'nama': namaMahasiswa,
+        'nim': nim,
         'status': status,
         'violations': _isLockedByViolation ? 3 : 0,
       });
@@ -208,13 +235,18 @@ class MahasiswaUjianController extends ChangeNotifier {
 
         final now = DateTime.now();
         if (now.isBefore(_activeUjian!.waktuMulai)) {
-          throw Exception('BELUM_WAKTUNYA (Sekarang: $now, Jadwal: ${_activeUjian!.waktuMulai})');
+          throw Exception(
+            'BELUM_WAKTUNYA (Sekarang: $now, Jadwal: ${_activeUjian!.waktuMulai})',
+          );
         }
         if (now.isAfter(_activeUjian!.waktuSelesai)) {
           throw Exception('WAKTU_HABIS');
         }
 
-        final resSesi = await _service.getSesiPengerjaan(_activeUjian!.id, mahasiswaId);
+        final resSesi = await _service.getSesiPengerjaan(
+          _activeUjian!.id,
+          mahasiswaId,
+        );
 
         if (resSesi != null) {
           if (resSesi['status_pengerjaan'] == 'SUBMITTED') {
@@ -222,11 +254,14 @@ class MahasiswaUjianController extends ChangeNotifier {
           }
           _currentSesiId = resSesi['id'];
         } else {
-          final newSesi = await _service.createSesiPengerjaan(_activeUjian!.id, mahasiswaId);
+          final newSesi = await _service.createSesiPengerjaan(
+            _activeUjian!.id,
+            mahasiswaId,
+          );
           _currentSesiId = newSesi['id'];
         }
 
-        await LocalDbService.instance.saveUjianLokal({
+        await _localDb.saveUjianLokal({
           'id': _activeUjian!.id,
           'judul_ujian': _activeUjian!.judulUjian,
           'durasi_menit': _activeUjian!.durasiMenit,
@@ -242,7 +277,6 @@ class MahasiswaUjianController extends ChangeNotifier {
       }
       return null;
     } catch (e) {
-      debugPrint("ERROR JOIN: $e");
       if (e.toString().contains('UJIAN_SUDAH_DIKERJAKAN') ||
           e.toString().contains('BELUM_WAKTUNYA') ||
           e.toString().contains('WAKTU_HABIS')) {
@@ -257,18 +291,16 @@ class MahasiswaUjianController extends ChangeNotifier {
 
   Future<void> downloadSoalLokal(int ujianId) async {
     try {
-      var dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
+      var dataLokal = await _localDb.getSoalByUjian(ujianId);
       if (dataLokal.isEmpty) {
         final remoteSoal = await _service.getRemoteSoal(ujianId);
         if (remoteSoal.isNotEmpty) {
           for (var s in remoteSoal) {
-            await LocalDbService.instance.saveSoalLokal(s);
+            await _localDb.saveSoalLokal(s);
           }
         }
       }
-    } catch (e) {
-      debugPrint("DEBUG ERROR DOWNLOAD SOAL: $e");
-    }
+    } catch (_) {}
   }
 
   Future<void> startUjian(int ujianId) async {
@@ -276,27 +308,26 @@ class MahasiswaUjianController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      var dataLokal = await LocalDbService.instance.getSoalByUjian(ujianId);
+      var dataLokal = await _localDb.getSoalByUjian(ujianId);
 
       _daftarSoal = dataLokal.map((s) => SoalModel.fromJson(s)).toList();
-      
+
       if (_activeUjian != null) {
-         final diff = _activeUjian!.waktuSelesai.difference(DateTime.now());
-         if (diff.isNegative) {
-             _timeRemaining = Duration.zero;
-         } else {
-             final maxDuration = Duration(minutes: _activeUjian!.durasiMenit);
-             _timeRemaining = diff < maxDuration ? diff : maxDuration;
-         }
+        final diff = _activeUjian!.waktuSelesai.difference(DateTime.now());
+        if (diff.isNegative) {
+          _timeRemaining = Duration.zero;
+        } else {
+          final maxDuration = Duration(minutes: _activeUjian!.durasiMenit);
+          _timeRemaining = diff < maxDuration ? diff : maxDuration;
+        }
       } else {
-         _timeRemaining = const Duration(hours: 2);
+        _timeRemaining = const Duration(hours: 2);
       }
 
       _stopwatch.reset();
       _stopwatch.start();
       _startTimer();
-    } catch (e) {
-      debugPrint("DEBUG ERROR START: $e");
+    } catch (_) {
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -308,11 +339,7 @@ class MahasiswaUjianController extends ChangeNotifier {
     notifyListeners();
 
     if (_currentSesiId != null) {
-      await LocalDbService.instance.saveJawabanLokal(
-        soalId,
-        _currentSesiId!,
-        jawaban,
-      );
+      await _localDb.saveJawabanLokal(soalId, _currentSesiId!, jawaban);
     }
   }
 
@@ -321,15 +348,12 @@ class MahasiswaUjianController extends ChangeNotifier {
   Future<void> submitUjian() async {
     lastErrorMessage = null;
     if (_currentSesiId == null) {
-      debugPrint("DEBUG ERROR: currentSesiId null!");
       lastErrorMessage = "Session ID tidak ditemukan. Silakan login kembali.";
       return;
     }
 
     try {
-      final listJawabanRaw = await LocalDbService.instance.getJawabanBySesi(
-        _currentSesiId!,
-      );
+      final listJawabanRaw = await _localDb.getJawabanBySesi(_currentSesiId!);
 
       final Map<int, Map<String, dynamic>> uniqueJawabanMap = {};
       for (var item in listJawabanRaw) {
@@ -354,11 +378,7 @@ class MahasiswaUjianController extends ChangeNotifier {
               nilaiOtomatis = soalOriginal.bobotNilai;
             }
           }
-        } catch (e) {
-          debugPrint(
-            "DEBUG WARNING: Soal ID $soalId tidak ditemukan di memory.",
-          );
-        }
+        } catch (_) {}
 
         return {
           'soal_id': soalId,
@@ -372,31 +392,31 @@ class MahasiswaUjianController extends ChangeNotifier {
 
       final offlineBox = Hive.box('offline_exams');
       final waktuKey = 'waktu_selesai_${_currentSesiId}';
-      
+
       if (!offlineBox.containsKey(waktuKey)) {
         offlineBox.put(waktuKey, DateTime.now().toIso8601String());
       }
-      
+
       final submitTime = offlineBox.get(waktuKey);
 
       await _service.markSesiAsSubmitted(_currentSesiId!, submitTime);
 
       offlineBox.delete(waktuKey);
       _status = SubmissionStatus.success;
-      
+
       _activeUjian = null;
       _currentSesiId = null;
       _daftarSoal.clear();
       _jawabanMahasiswa.clear();
-      await LocalDbService.instance.clearAllLokalData();
-
+      await _localDb.clearAllLokalData();
     } catch (e) {
-      debugPrint("DEBUG ERROR SAAT SUBMIT: $e");
       lastErrorMessage = e.toString();
 
-      if (lastErrorMessage!.contains('23503') && lastErrorMessage!.contains('SESI_PENGERJAAN')) {
-        lastErrorMessage = "Sesi ujian tidak ditemukan di server. Data lokal direset.";
-        await LocalDbService.instance.clearAllLokalData();
+      if (lastErrorMessage!.contains('23503') &&
+          lastErrorMessage!.contains('SESI_PENGERJAAN')) {
+        lastErrorMessage =
+            "Sesi ujian tidak ditemukan di server. Data lokal direset.";
+        await _localDb.clearAllLokalData();
         _activeUjian = null;
         _currentSesiId = null;
         _daftarSoal.clear();
@@ -404,7 +424,7 @@ class MahasiswaUjianController extends ChangeNotifier {
         _status = SubmissionStatus.idle;
       } else {
         _status = SubmissionStatus.offlineSaved;
-        
+
         final offlineBox = Hive.box('offline_exams');
         final waktuKey = 'waktu_selesai_${_currentSesiId}';
         if (!offlineBox.containsKey(waktuKey)) {
@@ -419,6 +439,10 @@ class MahasiswaUjianController extends ChangeNotifier {
   Duration _initialDuration = Duration.zero;
 
   void _startTimer() {
+    if (!enableTimer) {
+      return;
+    }
+
     _initialDuration = _timeRemaining;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -457,6 +481,14 @@ class MahasiswaUjianController extends ChangeNotifier {
 
   String? getJawabanTerpilih(int soalId) => _jawabanMahasiswa[soalId];
   bool isRagu(int soalId) => _raguRaguSet.contains(soalId);
+
+  @visibleForTesting
+  Future<void> debugForceTimerExpired() async {
+    _timeRemaining = Duration.zero;
+    _timer?.cancel();
+    _stopwatch.stop();
+    await submitUjian();
+  }
 
   @override
   void dispose() {
