@@ -7,23 +7,22 @@ import 'package:provider/provider.dart';
 // Import Auth
 import 'package:akademix/features/auth/data/auth_repository_impl.dart';
 import 'package:akademix/features/auth/model/auth_usecase.dart';
-import 'package:akademix/features/auth/view_models/auth_view_model.dart';
-import 'package:akademix/features/auth/presentation/role_guard.dart';
-import 'package:akademix/features/auth/presentation/login_screen.dart';
+import 'package:akademix/features/auth/controllers/auth_controller.dart';
+import 'package:akademix/features/auth/views/role_guard.dart';
+import 'package:akademix/features/auth/views/login_view.dart';
 
 // Import Dashboard
-import 'package:akademix/features/dashboard-mahasiswa/presentation/dashboard_screen.dart';
-import 'package:akademix/features/dashboard-dosen/presentation/dashboard_dosen_screen.dart';
+import 'package:akademix/features/dashboard/views/dashboard_view.dart';
 
 // Import Ujian
-import 'package:akademix/features/ujian/view_models/dosen_ujian_view_model.dart';
-import 'package:akademix/features/ujian/view_models/mahasiswa_ujian_view_model.dart';
-import 'package:akademix/features/ujian/presentation/join_ujian_screen.dart';
-import 'package:akademix/features/ujian/presentation/submission_result_screen.dart';
-import 'package:akademix/features/ujian/presentation/sesi_ujian_screen.dart';
+import 'package:akademix/features/ujian/controllers/dosen_ujian_controller.dart';
+import 'package:akademix/features/ujian/controllers/mahasiswa_ujian_controller.dart';
+import 'package:akademix/features/ujian/views/join_ujian_view.dart';
+import 'package:akademix/features/ujian/views/submission_result_view.dart';
+import 'package:akademix/features/ujian/views/sesi_ujian_view.dart';
 
 // Import Bank Soal
-import 'package:akademix/features/bank_soal/view_models/bank_soal_view_model.dart';
+import 'package:akademix/features/bank_soal/controllers/bank_soal_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,10 +44,10 @@ Future<void> main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthViewModel(authUsecase)),
-        ChangeNotifierProvider(create: (_) => MahasiswaUjianViewModel()),
-        ChangeNotifierProvider(create: (_) => DosenUjianViewModel()),
-        ChangeNotifierProvider(create: (_) => BankSoalViewModel()),
+        ChangeNotifierProvider(create: (_) => AuthController(authUsecase)),
+        ChangeNotifierProvider(create: (_) => MahasiswaUjianController()),
+        ChangeNotifierProvider(create: (_) => DosenUjianController()),
+        ChangeNotifierProvider(create: (_) => BankSoalController()),
       ],
       child: const MyApp(),
     ),
@@ -65,7 +64,6 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
-
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF2962FF),
           primary: const Color(0xFF2962FF),
@@ -73,15 +71,13 @@ class MyApp extends StatelessWidget {
       ),
       home: const RoleGuard(),
       routes: {
-        '/login': (context) => const LoginScreen(),
-        '/mahasiswa/home': (context) => const DashboardMahasiswaScreen(),
-        '/dosen/home': (context) => const DashboardDosenScreen(),
-        '/submission-result': (context) => const SubmissionResultScreen(),
-        '/join-ujian': (context) => const JoinUjianScreen(),
-
+        '/login': (context) => const LoginView(),
+        '/dashboard': (context) => const DashboardView(),
+        '/submission-result': (context) => const SubmissionResultView(),
+        '/join-ujian': (context) => const JoinUjianView(),
         '/ujian': (context) {
           final args = ModalRoute.of(context)!.settings.arguments as int;
-          return UjianScreen(ujianId: args);
+          return UjianView(ujianId: args);
         },
       },
     );

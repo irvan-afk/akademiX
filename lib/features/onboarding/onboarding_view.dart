@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:akademix/features/onboarding/onboarding_controller.dart';
-import 'package:akademix/features/auth/presentation/login_screen.dart';
+import 'package:akademix/features/auth/views/login_view.dart';
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({Key? key}) : super(key: key);
@@ -23,7 +23,7 @@ class _OnboardingViewState extends State<OnboardingView> {
 
     if (isFinished) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        MaterialPageRoute(builder: (context) => const LoginView()),
       );
     } else {
       setState(() {});
@@ -37,7 +37,7 @@ class _OnboardingViewState extends State<OnboardingView> {
 
   void _skip() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (context) => const LoginView()),
     );
   }
 
@@ -45,12 +45,12 @@ class _OnboardingViewState extends State<OnboardingView> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: controller.step == 0
-          ? _buildSplashScreen(context)
-          : _buildOnboardingScreen(context, controller.step - 1),
+          ? _buildSplashView(context)
+          : _buildOnboardingView(context, controller.step - 1),
     );
   }
 
-  Widget _buildSplashScreen(BuildContext context) {
+  Widget _buildSplashView(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -147,7 +147,7 @@ class _OnboardingViewState extends State<OnboardingView> {
     );
   }
 
-  Widget _buildOnboardingScreen(BuildContext context, int index) {
+  Widget _buildOnboardingView(BuildContext context, int index) {
     return Container(
       color: Color(0xFFF3F4F6),
       child: SafeArea(
