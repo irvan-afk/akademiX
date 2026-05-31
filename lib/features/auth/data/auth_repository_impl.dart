@@ -1,7 +1,6 @@
 import 'package:akademix/core/constants/supabase_constants.dart';
 import 'package:akademix/core/models/user_model.dart';
 import 'package:akademix/core/constants/app_enums.dart';
-import 'dart:developer';
 import 'package:flutter/foundation.dart';
 import 'package:bcrypt/bcrypt.dart';
 
@@ -22,6 +21,13 @@ class AuthRepositoryImpl {
         debugPrint("DEBUG REPO LOGIN ERROR: Invalid password");
         return null;
       }
+
+      final newDeviceId = DateTime.now().millisecondsSinceEpoch.toString();
+      await supabase
+          .from('USERS')
+          .update({'device_id': newDeviceId})
+          .eq('id', data['id']);
+      data['device_id'] = newDeviceId;
 
       debugPrint("DEBUG REPO LOGIN SUCCESS: $data");
       return UserModel.fromJson(data);
@@ -60,6 +66,22 @@ class AuthRepositoryImpl {
     } catch (e) {
       debugPrint("DEBUG REPO DETAIL ERROR: $e");
       return null;
+    }
+  }
+
+  // Verify Session
+  Future<bool> verifySession(int userId, String currentDeviceId) async {
+    try {
+      final data = await supabase
+          .from('USERS')
+          .select('device_id')
+          .eq('id', userId)
+          .single();
+      
+      return data['device_id'] == currentDeviceId;
+    } catch (e) {
+      debugPrint("DEBUG REPO VERIFY SESSION ERROR: $e");
+      return true; // Keep logged in on network error
     }
   }
 }

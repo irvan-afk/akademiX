@@ -21,6 +21,10 @@ class AuthUsecase {
 
     return AuthResult.success(user, detail);
   }
+
+  Future<bool> verifySession(int userId, String currentDeviceId) async {
+    return await _repo.verifySession(userId, currentDeviceId);
+  }
 }
 
 class AuthResult {

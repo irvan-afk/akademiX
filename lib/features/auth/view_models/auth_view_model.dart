@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:akademix/core/models/user_model.dart';
 import 'package:akademix/features/auth/model/auth_usecase.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthUsecase _authUsecase;
+  Timer? _sessionTimer;
 
   AuthViewModel(this._authUsecase);
 
@@ -40,6 +42,7 @@ class AuthViewModel extends ChangeNotifier {
       if (result.isSuccess) {
         _currentUser = result.user;
         _userData = result.detail;
+        _startSessionTimer();
         notifyListeners();
         return true;
       } else {
@@ -57,8 +60,34 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   void logout() {
+    _stopSessionTimer();
     _currentUser = null;
     _userData = null;
     notifyListeners();
+  }
+
+  void _startSessionTimer() {
+    _stopSessionTimer();
+    // Cek setiap 10 detik apakah akun login di device lain
+    _sessionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
+      if (_currentUser == null || _currentUser!.deviceId == null) return;
+      
+      final isValid = await _authUsecase.verifySession(_currentUser!.id, _currentUser!.deviceId!);
+      if (!isValid) {
+        print("Sesi tidak valid (login di device lain). Logout otomatis.");
+        logout();
+      }
+    });
+  }
+
+  void _stopSessionTimer() {
+    _sessionTimer?.cancel();
+    _sessionTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _stopSessionTimer();
+    super.dispose();
   }
 }

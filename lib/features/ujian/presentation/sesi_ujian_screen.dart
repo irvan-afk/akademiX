@@ -200,10 +200,10 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
     final vm = context.watch<MahasiswaUjianViewModel>();
     const brightBlue = Color(0xFF2962FF);
 
-    if (vm.isLoading)
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (vm.daftarSoal.isEmpty)
-      return const Scaffold(body: Center(child: Text("Soal tidak ditemukan.")));
+    if (vm.isLoading){
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));}
+    if (vm.daftarSoal.isEmpty){
+      return const Scaffold(body: Center(child: Text("Soal tidak ditemukan.")));}
 
     final soal = vm.daftarSoal[vm.currentIndex];
     final isLastSoal = vm.currentIndex == vm.daftarSoal.length - 1;
@@ -602,7 +602,6 @@ class _UjianScreenState extends State<UjianScreen> with WidgetsBindingObserver {
               runSpacing: 12,
               children: List.generate(vm.daftarSoal.length, (index) {
                 final id = vm.daftarSoal[index].id;
-                final isAnswered = vm.getJawabanTerpilih(id) != null;
                 final isRagu = vm.isRagu(id);
                 final isCurrent = index == vm.currentIndex;
 

@@ -39,7 +39,6 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
   // Manajemen Timer
   Timer? _timer;
   final Stopwatch _stopwatch = Stopwatch();
-  final Duration _durasiUjian = const Duration(hours: 2);
   Duration _timeRemaining = const Duration(hours: 2);
   String get timerString => _formatDuration(_timeRemaining);
 
