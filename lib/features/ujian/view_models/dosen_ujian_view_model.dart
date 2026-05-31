@@ -419,7 +419,7 @@ class DosenUjianViewModel extends ChangeNotifier {
         return m != null && m['nim'] == nim;
       });
       if (pesertaIndex != -1) {
-        _pesertaUjian[pesertaIndex]['status_pengerjaan'] = 'ONGOING';
+        _pesertaUjian[pesertaIndex]['status_pengerjaan'] = 'ACTIVE';
       }
       
       notifyListeners();
@@ -435,17 +435,17 @@ class DosenUjianViewModel extends ChangeNotifier {
         if (mahasiswaRes.isNotEmpty) {
           final mahasiswaId = mahasiswaRes['id'];
           // Kita butuh ujianId, ambil dari parameter channel atau ambil semua SESI ujian ini
-          // Lebih mudah mengupdate semua sesi_pengerjaan milik mhs ini yang statusnya LOCKED
+          // Lebih mudah mengupdate semua sesi_pengerjaan milik mhs ini yang statusnya REJECTED
           await _supabase
               .from('SESI_PENGERJAAN')
-              .update({'status_pengerjaan': 'ONGOING'})
+              .update({'status_pengerjaan': 'ACTIVE'})
               .eq('mahasiswa_id', mahasiswaId)
-              .eq('status_pengerjaan', 'LOCKED');
+              .inFilter('status_pengerjaan', ['LOCKED', 'REJECTED']); // Memastikan backwards compatibility
               
           // Refresh list lokal agar warna Merah langsung hilang
           int index = _pesertaUjian.indexWhere((p) => p['MAHASISWA']['id'] == mahasiswaId);
           if (index != -1) {
-            _pesertaUjian[index]['status_pengerjaan'] = 'ONGOING';
+            _pesertaUjian[index]['status_pengerjaan'] = 'ACTIVE';
             notifyListeners();
           }
         }

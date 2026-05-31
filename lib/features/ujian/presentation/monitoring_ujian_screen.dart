@@ -153,7 +153,9 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
                             itemBuilder: (context, index) {
                               final student = allStudents[index];
                               
-                              bool isLocked = student['status_live'] == 'LOCKED' || student['status_pengerjaan'] == 'LOCKED';
+                              bool isLocked = student['status_live'] == 'LOCKED' || 
+                                              student['status_pengerjaan'] == 'LOCKED' || 
+                                              student['status_pengerjaan'] == 'REJECTED';
                               bool isSubmitted = student['status_pengerjaan'] == 'SUBMITTED';
                               
                               Color cardColor = isLocked ? Colors.red : (isSubmitted ? Colors.green : Colors.grey.shade400);

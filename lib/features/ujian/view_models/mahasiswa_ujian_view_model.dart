@@ -143,7 +143,7 @@ class MahasiswaUjianViewModel extends ChangeNotifier {
     if (_currentSesiId != null) {
       try {
         await _supabase.from('SESI_PENGERJAAN').update({
-          'status_pengerjaan': status == 'LOCKED' ? 'LOCKED' : 'ONGOING',
+          'status_pengerjaan': status == 'LOCKED' ? 'REJECTED' : 'ACTIVE',
         }).eq('id', _currentSesiId!);
       } catch (e) {
         debugPrint("Gagal update remote lock status: $e");

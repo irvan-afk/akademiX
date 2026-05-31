@@ -7,6 +7,7 @@ import '../../ujian/presentation/join_ujian_screen.dart';
 import '../../ujian/presentation/riwayat_mahasiswa_view.dart';
 import '../../ujian/presentation/waiting_room_screen.dart';
 import 'package:akademix/features/ujian/view_models/mahasiswa_ujian_view_model.dart';
+import 'package:akademix/core/database/local_db_service.dart';
 
 class DashboardMahasiswaScreen extends StatefulWidget {
   const DashboardMahasiswaScreen({super.key});
@@ -415,6 +416,61 @@ class BerandaContent extends StatelessWidget {
                   SizedBox(width: 8),
                   Icon(Icons.chevron_right),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("Hapus Ujian Lokal?"),
+                    content: const Text(
+                      "Apakah Anda yakin ingin menghapus ujian ini dari perangkat? Lakukan ini jika ujian error atau sudah dihapus oleh Dosen.",
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text("Batal"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirm == true && context.mounted) {
+                  // Hapus dari SQLite lokal
+                  await LocalDbService.instance.clearAllLokalData();
+                  
+                  if (context.mounted) {
+                    final authVm = context.read<AuthViewModel>();
+                    context.read<MahasiswaUjianViewModel>().checkOfflineSubmission(mahasiswaId: authVm.mahasiswaId);
+                    
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Data ujian lokal berhasil dihapus."),
+                      ),
+                    );
+                  }
+                }
+              },
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
+              label: const Text(
+                "HAPUS UJIAN LOKAL",
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
               ),
             ),
           ),
