@@ -208,6 +208,7 @@ class BerandaContent extends StatelessWidget {
                     _buildJoinCard(context),
                   const SizedBox(height: 30),
                 ],
+              ),
             ),
           ),
         ),
