@@ -4,7 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/supabase_constants.dart';
 import '../../../core/database/local_db_service.dart';
-import '../models/bank_soal_draft_model.dart';
+import '../models/bank_soal_model.dart';
 
 class BankSoalViewModel extends ChangeNotifier {
   final LocalDbService _localDbService = LocalDbService.instance;
@@ -12,19 +12,19 @@ class BankSoalViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _lastActionMessage;
-  BankSoalDraftModel _draft = BankSoalDraftModel.empty();
+  BankSoalModel _draft = BankSoalModel.empty();
   List<BankSoalPengampuOption> _pengampuOptions = [];
 
   bool get isLoading => _isLoading;
   String? get lastActionMessage => _lastActionMessage;
-  BankSoalDraftModel get draft => _draft;
+  BankSoalModel get draft => _draft;
   int get totalPoin => _draft.totalPoin;
   List<BankSoalPengampuOption> get pengampuOptions => _pengampuOptions;
 
   bool get isReadyToPublish => _draft.canPublish;
 
   void resetDraft({int? dosenId}) {
-    _draft = BankSoalDraftModel.empty(dosenId: dosenId);
+    _draft = BankSoalModel.empty(dosenId: dosenId);
     notifyListeners();
   }
 
@@ -92,22 +92,22 @@ class BankSoalViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final latest = await _localDbService.getLatestBankSoalDraft(
+      final latest = await _localDbService.getLatestBankSoal(
         dosenId: dosenId,
       );
 
       if (latest == null) {
-        _draft = BankSoalDraftModel.empty(dosenId: dosenId);
+        _draft = BankSoalModel.empty(dosenId: dosenId);
         return;
       }
 
-      _draft = BankSoalDraftModel.fromMap(
+      _draft = BankSoalModel.fromMap(
         Map<String, dynamic>.from(latest['bank_soal'] as Map),
         List<Map<String, dynamic>>.from(latest['soal'] as List),
       );
     } catch (e) {
       debugPrint('BankSoalViewModel.loadLatestDraft error: $e');
-      _draft = BankSoalDraftModel.empty(dosenId: dosenId);
+      _draft = BankSoalModel.empty(dosenId: dosenId);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -119,7 +119,7 @@ class BankSoalViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final latest = await _localDbService.getBankSoalDraftByRemoteUjianId(
+      final latest = await _localDbService.getBankSoalByRemoteUjianId(
         remoteUjianId,
       );
 
@@ -127,7 +127,7 @@ class BankSoalViewModel extends ChangeNotifier {
         return false;
       }
 
-      _draft = BankSoalDraftModel.fromMap(
+      _draft = BankSoalModel.fromMap(
         Map<String, dynamic>.from(latest['bank_soal'] as Map),
         List<Map<String, dynamic>>.from(latest['soal'] as List),
       );
@@ -163,7 +163,7 @@ class BankSoalViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addQuestion(BankSoalQuestionDraft question) {
+  void addQuestion(BankSoalQuestionModel question) {
     _draft = _draft.copyWith(
       questions: [..._draft.questions, question],
       updatedAt: DateTime.now(),
@@ -171,7 +171,7 @@ class BankSoalViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateQuestion(BankSoalQuestionDraft question) {
+  void updateQuestion(BankSoalQuestionModel question) {
     final updatedQuestions = _draft.questions.map((item) {
       return item.localId == question.localId ? question : item;
     }).toList();
@@ -204,7 +204,7 @@ class BankSoalViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final savedId = await _localDbService.saveBankSoalDraft(
+      final savedId = await _localDbService.saveBankSoal(
         id: _draft.id,
         dosenId: _draft.dosenId,
         pengampuId: _draft.pengampuId,
@@ -236,7 +236,7 @@ class BankSoalViewModel extends ChangeNotifier {
 
       // Update local draft with remoteUjianId from Supabase
       if (_draft.remoteUjianId != null && _draft.id != null) {
-        await _localDbService.saveBankSoalDraft(
+        await _localDbService.saveBankSoal(
           id: _draft.id,
           dosenId: _draft.dosenId,
           pengampuId: _draft.pengampuId,
@@ -277,7 +277,7 @@ class BankSoalViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final savedId = await _localDbService.saveBankSoalDraft(
+      final savedId = await _localDbService.saveBankSoal(
         id: _draft.id,
         dosenId: _draft.dosenId,
         pengampuId: _draft.pengampuId,
