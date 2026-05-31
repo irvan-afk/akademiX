@@ -50,6 +50,18 @@ class _MonitoringUjianScreenState extends State<MonitoringUjianScreen> {
             title: "Live Monitoring",
             subtitle: widget.judulUjian,
             showBackButton: true,
+            trailing: IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: () {
+                context.read<DosenUjianViewModel>().refreshMonitoring(widget.ujianId);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Memperbarui data monitoring..."),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+              },
+            ),
           ),
           
           Padding(

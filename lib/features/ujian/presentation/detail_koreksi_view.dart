@@ -254,6 +254,19 @@ class _DetailKoreksiViewState extends State<DetailKoreksiView> {
                                                 _scoreControllers[jwbId]!.text,
                                               ) ??
                                               0;
+                                              
+                                          if (nilai > bobot || nilai < 0) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  "skor gak valid (0 - $bobot)",
+                                                ),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                            return;
+                                          }
+
                                           final feedback =
                                               _feedbackControllers[jwbId]!.text;
                                           final sukses = await vm

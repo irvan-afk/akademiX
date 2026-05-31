@@ -463,6 +463,18 @@ class DosenUjianViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> refreshMonitoring(int ujianId) async {
+    _isLoading = true;
+    notifyListeners();
+    
+    await fetchPesertaUjian(ujianId);
+    stopMonitoring();
+    startMonitoring(ujianId);
+    
+    _isLoading = false;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     stopMonitoring();
