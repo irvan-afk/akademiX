@@ -432,5 +432,78 @@ void main() {
         expect(box.keys, isNotEmpty);
       },
     );
+
+    test(
+      'joinUjian menggunakan sesi lama jika sudah ada (reconnect)',
+      () async {
+        final now = DateTime.now();
+        final localDb = FakeLocalDbGateway();
+        final service = FakeMahasiswaUjianService(
+          ujianResponse: {
+            'id': 7,
+            'pengampu_id': 10,
+            'judul_ujian': 'UTS',
+            'waktu_mulai': now
+                .subtract(const Duration(minutes: 5))
+                .toIso8601String(),
+            'waktu_selesai': now
+                .add(const Duration(hours: 1))
+                .toIso8601String(),
+            'durasi_menit': 60,
+            'status_ujian': 'PUBLISHED',
+          },
+          // Sesi lama sudah ada, status masih ACTIVE
+          sesiResponse: {'id': 888, 'status_pengerjaan': 'ACTIVE'},
+          remoteSoalResponse: const [],
+        );
+        final controller = MahasiswaUjianController(
+          enableTimer: false,
+          service: service,
+          localDb: localDb,
+        );
+
+        final result = await controller.joinUjian('CODE7', 9);
+
+        expect(result, isNotNull);
+        // Harus menggunakan sesiId lama (888), bukan membuat sesi baru
+        expect(controller.currentSesiId, 888);
+      },
+    );
+
+    test(
+      'joinUjian ditolak jika sesi sudah SUBMITTED',
+      () async {
+        final now = DateTime.now();
+        final controller = MahasiswaUjianController(
+          enableTimer: false,
+          service: FakeMahasiswaUjianService(
+            ujianResponse: {
+              'id': 8,
+              'pengampu_id': 10,
+              'judul_ujian': 'UTS',
+              'waktu_mulai': now
+                  .subtract(const Duration(minutes: 5))
+                  .toIso8601String(),
+              'waktu_selesai': now
+                  .add(const Duration(hours: 1))
+                  .toIso8601String(),
+              'durasi_menit': 60,
+              'status_ujian': 'PUBLISHED',
+            },
+            // Sesi sudah selesai dikerjakan
+            sesiResponse: {'id': 999, 'status_pengerjaan': 'SUBMITTED'},
+            remoteSoalResponse: const [],
+          ),
+          localDb: FakeLocalDbGateway(),
+        );
+
+        expect(
+          () => controller.joinUjian('CODE8', 9),
+          throwsA(
+            predicate((e) => e.toString().contains('UJIAN_SUDAH_DIKERJAKAN')),
+          ),
+        );
+      },
+    );
   });
 }

@@ -63,5 +63,21 @@ void main() {
       expect(model.tampilkanNilai, isFalse);
       expect(model.daftarSoal, isNull);
     });
+
+    test('status CLOSED di-parse ke UjianStatus.closed', () {
+      final model = UjianModel.fromJson({
+        'id': 3,
+        'pengampu_id': 5,
+        'judul_ujian': 'Ujian Akhir Semester',
+        'waktu_mulai': '2026-05-01T08:00:00.000Z',
+        'waktu_selesai': '2026-05-01T10:00:00.000Z',
+        'durasi_menit': 120,
+        'status_ujian': 'CLOSED',
+        'tampilkan_nilai': false,
+      });
+
+      expect(model.id, 3);
+      expect(model.statusUjian, UjianStatus.closed);
+    });
   });
 }

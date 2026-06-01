@@ -23,5 +23,17 @@ void main() {
       expect(fallback.role, UserRole.mahasiswa);
       expect(fallback.username, 'user2');
     });
+
+    test('device_id null aman saat tidak ada di payload', () {
+      final user = UserModel.fromJson({
+        'id': 3,
+        'role': 'MAHASISWA',
+        'username': 'user3',
+        // 'device_id' tidak ada sama sekali
+      });
+
+      expect(user.id, 3);
+      expect(user.deviceId, isNull);
+    });
   });
 }

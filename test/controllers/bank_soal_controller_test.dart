@@ -207,5 +207,66 @@ void main() {
         'Draft bank soal berhasil disimpan.',
       );
     });
+
+    test('saveBankSoal ditolak jika soal masih kosong', () async {
+      final controller = BankSoalController(
+        bankSoalService: FakeBankSoalService(),
+        localDb: FakeLocalDbGateway(),
+      );
+
+      controller.resetDraft(dosenId: 1);
+      controller.setHeader(
+        pengampuId: 3,
+        pengampuLabel: 'MK 3 • Kelas C',
+        mataKuliah: 'Basis Data',
+        judulUjian: 'UAS',
+        durasiMenit: 60,
+      );
+      // Sengaja tidak addQuestion
+
+      final result = await controller.saveBankSoal();
+
+      expect(result, isFalse);
+      expect(
+        controller.lastActionMessage,
+        'Lengkapi data ujian dan minimal 1 soal dulu.',
+      );
+    });
+
+    test('publishBankSoal sukses jika poin = 100 dan header valid', () async {
+      final localDb = FakeLocalDbGateway();
+      final service = FakeBankSoalService();
+      final controller = BankSoalController(
+        bankSoalService: service,
+        localDb: localDb,
+      );
+
+      controller.resetDraft(dosenId: 1);
+      controller.setHeader(
+        pengampuId: 4,
+        pengampuLabel: 'MK 4 • Kelas D',
+        mataKuliah: 'Jaringan Komputer',
+        judulUjian: 'UTS',
+        durasiMenit: 90,
+      );
+      controller.addQuestion(
+        const BankSoalQuestionModel(
+          localId: 1,
+          tipeSoal: 'pilihan_ganda',
+          teksSoal: 'Apa itu IP Address?',
+          opsiJawaban: {'A': 'Alamat fisik', 'B': 'Alamat logis'},
+          kunciJawaban: 'B',
+          poin: 100,
+        ),
+      );
+
+      final result = await controller.publishBankSoal();
+
+      expect(result, isTrue);
+      expect(localDb.updateStatusCalled, isTrue);
+      expect(service.replaceCalled, isTrue);
+      expect(service.replaceUjianId, 100);
+      expect(controller.lastActionMessage, 'Bank soal berhasil dipublish.');
+    });
   });
 }

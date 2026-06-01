@@ -239,5 +239,48 @@ void main() {
       expect(controller.detailPengerjaan.first['jawaban']['nilai'], 8);
       expect(controller.detailPengerjaan.first['jawaban']['feedback'], 'bagus');
     });
+
+    test('fetchRekapNilai menghitung statistik avg, max, dan passRate dengan benar',
+        () async {
+      final service = FakeDosenUjianService(
+        ujianTampilkanNilaiStatus: {'tampilkan_nilai': true},
+        rekapNilaiDataResponse: [
+          // Mahasiswa A: PG=70, Essay=10 => total=80 (lulus, >= 70)
+          {
+            'MAHASISWA': {'nama': 'Andi', 'nim': '001'},
+            'JAWABAN_MAHASISWA': [
+              {'nilai': 70, 'soal': {'tipe_soal': 'pilihan_ganda'}},
+              {'nilai': 10, 'soal': {'tipe_soal': 'essay'}},
+            ],
+          },
+          // Mahasiswa B: PG=50, Essay=10 => total=60 (tidak lulus, < 70)
+          {
+            'MAHASISWA': {'nama': 'Budi', 'nim': '002'},
+            'JAWABAN_MAHASISWA': [
+              {'nilai': 50, 'soal': {'tipe_soal': 'pilihan_ganda'}},
+              {'nilai': 10, 'soal': {'tipe_soal': 'essay'}},
+            ],
+          },
+        ],
+      );
+      final controller = DosenUjianController(service: service);
+
+      await controller.fetchRekapNilai(1);
+
+      // Verifikasi data rekap
+      expect(controller.rekapNilai, hasLength(2));
+      expect(controller.rekapNilai.first['total'], 80);
+      expect(controller.rekapNilai.first['isLulus'], isTrue);
+      expect(controller.rekapNilai.last['total'], 60);
+      expect(controller.rekapNilai.last['isLulus'], isFalse);
+
+      // Verifikasi statistik: avg=(80+60)/2=70, max=80, passRate=1/2*100=50
+      expect(controller.statsRekap['avg'], '70.0');
+      expect(controller.statsRekap['max'], 80);
+      expect(controller.statsRekap['passRate'], 50);
+
+      // Verifikasi tampilkan_nilai
+      expect(controller.isNilaiPublished, isTrue);
+    });
   });
 }

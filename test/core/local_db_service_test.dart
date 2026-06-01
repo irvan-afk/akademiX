@@ -89,5 +89,19 @@ void main() {
       expect(await localDbService.getSoalByUjian(2), isEmpty);
       expect(await localDbService.getJawabanBySesi(600), isEmpty);
     });
+
+    test('jawaban duplikat untuk soal yang sama tersimpan sebagai entri baru', () async {
+      // saveJawabanLokal menggunakan AUTOINCREMENT, sehingga
+      // panggilan berulang untuk soal yang sama TIDAK melakukan deduplication.
+      // Ini adalah behavior yang didokumentasikan secara eksplisit.
+      await localDbService.saveJawabanLokal(300, 700, 'A');
+      await localDbService.saveJawabanLokal(300, 700, 'B'); // jawaban diubah
+
+      final result = await localDbService.getJawabanBySesi(700);
+
+      // Kedua entri tersimpan (tidak di-dedup) — ini expected behavior
+      expect(result, hasLength(2));
+      expect(result.map((r) => r['jawaban_teks']).toList(), containsAll(['A', 'B']));
+    });
   });
 }

@@ -10,14 +10,17 @@ class FakeAuthRepository extends AuthRepositoryImpl {
     this.loginResult,
     this.detailResult,
     this.verifySessionResult = true,
+    this.throwOnLogin = false,
   });
 
   final UserModel? loginResult;
   final Map<String, dynamic>? detailResult;
   final bool verifySessionResult;
+  final bool throwOnLogin;
 
   @override
   Future<UserModel?> login(String username, String password) async {
+    if (throwOnLogin) throw Exception('database error');
     return loginResult;
   }
 
@@ -99,6 +102,53 @@ void main() {
 
         expect(controller.currentUser, isNull);
         expect(controller.userData, isNull);
+      },
+    );
+
+    test('logout eksplisit mengosongkan currentUser dan userData', () async {
+      final user = UserModel(
+        id: 1,
+        role: UserRole.mahasiswa,
+        username: 'mhs1',
+        deviceId: 'device-1',
+      );
+
+      final controller = AuthController(
+        AuthUsecase(
+          FakeAuthRepository(
+            loginResult: user,
+            detailResult: {'id': 10, 'nama': 'Mahasiswa A'},
+          ),
+        ),
+        enableSessionTimer: false,
+      );
+
+      await controller.loginProcess('mhs1', 'password');
+      expect(controller.currentUser, isNotNull);
+
+      controller.logout();
+
+      expect(controller.currentUser, isNull);
+      expect(controller.userData, isNull);
+      expect(controller.errorMessage, isNull);
+    });
+
+    test(
+      'loginProcess mengembalikan false dan errorMessage saat repository throw exception',
+      () async {
+        final controller = AuthController(
+          AuthUsecase(FakeAuthRepository(throwOnLogin: true)),
+          enableSessionTimer: false,
+        );
+
+        final result = await controller.loginProcess('mhs1', 'password');
+
+        expect(result, isFalse);
+        expect(controller.currentUser, isNull);
+        expect(
+          controller.errorMessage,
+          startsWith('Terjadi kesalahan sistem'),
+        );
       },
     );
   });
