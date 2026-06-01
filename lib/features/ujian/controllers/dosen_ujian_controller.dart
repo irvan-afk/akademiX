@@ -81,7 +81,7 @@ class DosenUjianController extends ChangeNotifier {
       final response = await _service.fetchUjianForDosen(dosenId);
       _allUjianDosen = response.map((e) => UjianModel.fromJson(e)).toList();
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Fetch Ujian Dosen: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -94,7 +94,7 @@ class DosenUjianController extends ChangeNotifier {
     try {
       return await _service.publishUjian(ujianId);
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Publish: $e");
       return null;
     } finally {
       _isLoading = false;
@@ -128,7 +128,7 @@ class DosenUjianController extends ChangeNotifier {
 
       _publishedExams = updatedExams;
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Fetch Published: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -142,7 +142,7 @@ class DosenUjianController extends ChangeNotifier {
       final response = await _service.fetchSubmissions(ujianId);
       _submissions = List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Fetch Submissions: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -155,7 +155,7 @@ class DosenUjianController extends ChangeNotifier {
       _pesertaUjian = List<Map<String, dynamic>>.from(response);
       notifyListeners();
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Fetch Peserta Ujian: $e");
     }
   }
 
@@ -178,7 +178,7 @@ class DosenUjianController extends ChangeNotifier {
         };
       }).toList();
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Fetch Detail: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -202,6 +202,7 @@ class DosenUjianController extends ChangeNotifier {
           : 0;
 
       if (bobotMaksimal > 0 && nilai > bobotMaksimal) {
+        debugPrint('Nilai essay melebihi bobot maksimal soal.');
         return false;
       }
 
@@ -216,7 +217,7 @@ class DosenUjianController extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Update Grade: $e");
       return false;
     }
   }
@@ -284,7 +285,7 @@ class DosenUjianController extends ChangeNotifier {
         };
       }
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Rekap: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -297,7 +298,7 @@ class DosenUjianController extends ChangeNotifier {
       _isNilaiPublished = value;
       notifyListeners();
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Toggle Tampilkan Nilai: $e");
     }
   }
 
@@ -307,7 +308,7 @@ class DosenUjianController extends ChangeNotifier {
     try {
       return await _service.joinPengawasan(kodePengawasan);
     } catch (e) {
-      // suppressed during tests
+      debugPrint("Error Join Pengawasan: $e");
       return null;
     } finally {
       _isLoading = false;
@@ -332,7 +333,7 @@ class DosenUjianController extends ChangeNotifier {
         value: ujianId,
       ),
       callback: (payload) {
-        // db change detected
+        debugPrint("DB Change detected, refetching peserta...");
         fetchPesertaUjian(ujianId);
       },
     );
@@ -396,8 +397,9 @@ class DosenUjianController extends ChangeNotifier {
           }
         }
       } catch (e) {
-          // suppressed during tests
-        }
+        debugPrint("Error unlockStudent DB Update: $e");
+      }
+      debugPrint("DEBUG: Broadcast unlock sent to $nim");
     }
   }
 

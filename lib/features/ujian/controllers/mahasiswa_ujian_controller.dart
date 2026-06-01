@@ -64,6 +64,9 @@ class MahasiswaUjianController extends ChangeNotifier {
             mahasiswaId,
           );
           if (remoteStatus == 'SUBMITTED') {
+            debugPrint(
+              "Ujian sudah disubmit di server. Membersihkan data lokal yang nyangkut...",
+            );
             await LocalDbService.instance.clearAllLokalData();
             _activeUjian = null;
             _currentSesiId = null;
@@ -71,7 +74,11 @@ class MahasiswaUjianController extends ChangeNotifier {
             notifyListeners();
             return;
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint(
+            "Gagal verifikasi status sinkronisasi ke server (Offline): $e",
+          );
+        }
       }
 
       final answers = await db.query('jawaban_lokal');
@@ -162,7 +169,9 @@ class MahasiswaUjianController extends ChangeNotifier {
           _currentSesiId!,
           status == 'LOCKED' ? 'REJECTED' : 'ACTIVE',
         );
-      } catch (_) {}
+      } catch (e) {
+        debugPrint("Gagal update remote lock status: $e");
+      }
     }
 
     if (_presenceChannel != null) {
@@ -177,13 +186,18 @@ class MahasiswaUjianController extends ChangeNotifier {
 
     _presenceChannel = _service.getPresenceChannel(ujianId);
     _presenceChannel!
-        .onPresenceJoin((_) {})
-        .onPresenceLeave((_) {});
+        .onPresenceJoin((payload) {
+          debugPrint("Presence joined: $payload");
+        })
+        .onPresenceLeave((payload) {
+          debugPrint("Presence left: $payload");
+        });
 
     _presenceChannel!.onBroadcast(
       event: 'unlock',
       callback: (payload) {
         if (payload['nim'] == nim) {
+          debugPrint("DEBUG: Received unlock signal from Dosen");
           _isUnlockedByDosen = true;
           notifyListeners();
         }
@@ -277,6 +291,7 @@ class MahasiswaUjianController extends ChangeNotifier {
       }
       return null;
     } catch (e) {
+      debugPrint("ERROR JOIN: $e");
       if (e.toString().contains('UJIAN_SUDAH_DIKERJAKAN') ||
           e.toString().contains('BELUM_WAKTUNYA') ||
           e.toString().contains('WAKTU_HABIS')) {
@@ -300,7 +315,9 @@ class MahasiswaUjianController extends ChangeNotifier {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint("DEBUG ERROR DOWNLOAD SOAL: $e");
+    }
   }
 
   Future<void> startUjian(int ujianId) async {
@@ -327,7 +344,8 @@ class MahasiswaUjianController extends ChangeNotifier {
       _stopwatch.reset();
       _stopwatch.start();
       _startTimer();
-    } catch (_) {
+    } catch (e) {
+      debugPrint("DEBUG ERROR START: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -348,6 +366,7 @@ class MahasiswaUjianController extends ChangeNotifier {
   Future<void> submitUjian() async {
     lastErrorMessage = null;
     if (_currentSesiId == null) {
+      debugPrint("DEBUG ERROR: currentSesiId null!");
       lastErrorMessage = "Session ID tidak ditemukan. Silakan login kembali.";
       return;
     }
@@ -378,7 +397,11 @@ class MahasiswaUjianController extends ChangeNotifier {
               nilaiOtomatis = soalOriginal.bobotNilai;
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint(
+            "DEBUG WARNING: Soal ID $soalId tidak ditemukan di memory.",
+          );
+        }
 
         return {
           'soal_id': soalId,
@@ -410,6 +433,7 @@ class MahasiswaUjianController extends ChangeNotifier {
       _jawabanMahasiswa.clear();
       await _localDb.clearAllLokalData();
     } catch (e) {
+      debugPrint("DEBUG ERROR SAAT SUBMIT: $e");
       lastErrorMessage = e.toString();
 
       if (lastErrorMessage!.contains('23503') &&
