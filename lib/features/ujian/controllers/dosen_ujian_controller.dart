@@ -176,7 +176,7 @@ class DosenUjianController extends ChangeNotifier {
           'soal': s,
           'jawaban': jwbRes.firstWhere(
             (j) => j['soal_id'] == s['id'],
-            orElse: () => {},
+            orElse: () => <String, dynamic>{},
           ),
         };
       }).toList();
@@ -196,7 +196,7 @@ class DosenUjianController extends ChangeNotifier {
     try {
       final detailItem = _detailPengerjaan.firstWhere(
         (item) => item['jawaban'] != null && item['jawaban']['id'] == jawabanId,
-        orElse: () => {},
+        orElse: () => <String, dynamic>{},
       );
 
       final soal = detailItem['soal'];
