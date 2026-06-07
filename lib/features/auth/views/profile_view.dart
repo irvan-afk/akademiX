@@ -22,7 +22,7 @@ class ProfileView extends StatelessWidget {
       backgroundColor: Colors.white,
       body: RefreshIndicator(
         onRefresh: () async {
-          await context.read<AuthViewModel>().refreshUserData();
+          await context.read<AuthController>().refreshUserData();
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -256,7 +256,7 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  Future<void> _pickAvatarFromGallery(BuildContext context, AuthViewModel authVm) async {
+  Future<void> _pickAvatarFromGallery(BuildContext context, AuthController authVm) async {
     try {
       final picker = ImagePicker();
       final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
@@ -279,7 +279,7 @@ class ProfileView extends StatelessWidget {
 
   void _showEditFieldDialog(
     BuildContext context,
-    AuthViewModel authVm,
+    AuthController authVm,
     String fieldName,
     String currentValue,
     Future<bool> Function(String) onSave,
@@ -345,7 +345,7 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  void _showChangePasswordDialog(BuildContext context, AuthViewModel authVm) {
+  void _showChangePasswordDialog(BuildContext context, AuthController authVm) {
     final oldPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
@@ -463,7 +463,7 @@ class ProfileView extends StatelessWidget {
     );
   }
 
-  void _showLogoutConfirmationDialog(BuildContext context, AuthViewModel authVm) {
+  void _showLogoutConfirmationDialog(BuildContext context, AuthController authVm) {
     showDialog(
       context: context,
       barrierDismissible: false,
