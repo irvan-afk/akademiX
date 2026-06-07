@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:akademix/core/constants/app_enums.dart';
 import 'package:akademix/core/models/user_model.dart';
 import 'package:akademix/features/auth/controllers/auth_controller.dart';
 import 'package:akademix/features/auth/model/auth_usecase.dart';
 import 'package:akademix/features/auth/data/auth_repository_impl.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 
 class FakeAuthRepository extends AuthRepositoryImpl {
   FakeAuthRepository({
@@ -36,6 +39,21 @@ class FakeAuthRepository extends AuthRepositoryImpl {
 }
 
 void main() {
+  late Directory tempDir;
+
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    tempDir = await Directory.systemTemp.createTemp('akademix_auth_hive_tests');
+    Hive.init(tempDir.path);
+    await Hive.openBox('settings');
+  });
+
+  tearDownAll(() async {
+    await Hive.box('settings').clear();
+    await Hive.close();
+    await tempDir.delete(recursive: true);
+  });
+
   group('AuthController', () {
     test('login sukses mengisi currentUser dan userData', () async {
       final user = UserModel(
