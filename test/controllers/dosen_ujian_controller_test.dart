@@ -106,7 +106,7 @@ class FakeDosenUjianService implements DosenUjianService {
   }
 
   @override
-  Future<void> updateSesiPengerjaanStatusToActive(int mahasiswaId) async {}
+  Future<void> updateSesiPengerjaanStatusToActive(int mahasiswaId, int ujianId) async {}
 
   @override
   RealtimeChannel getMonitoringChannel(int ujianId) {
