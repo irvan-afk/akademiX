@@ -42,6 +42,7 @@ class DosenUjianController extends ChangeNotifier {
       result.add({
         'nama': mahasiswa['nama'] ?? 'Unknown',
         'nim': nim ?? '-',
+        'avatar_url': mahasiswa['avatar_url'],
         'status_pengerjaan': peserta['status_pengerjaan'],
         'status_live': onlineData.isNotEmpty ? onlineData['status'] : 'OFFLINE',
         'violations': onlineData.isNotEmpty
@@ -56,6 +57,7 @@ class DosenUjianController extends ChangeNotifier {
         result.add({
           'nama': online['nama'] ?? 'Unknown',
           'nim': online['nim'] ?? '-',
+          'avatar_url': online['avatar_url'],
           'status_pengerjaan': 'UNKNOWN',
           'status_live': online['status'] ?? 'ONLINE',
           'violations': online['violations'] ?? 0,
