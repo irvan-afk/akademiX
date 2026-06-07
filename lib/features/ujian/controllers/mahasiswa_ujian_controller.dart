@@ -196,10 +196,20 @@ class MahasiswaUjianController extends ChangeNotifier {
 
     _presenceChannel!.onBroadcast(
       event: 'unlock',
-      callback: (payload) {
+      callback: (payload) async {
         if (payload['nim'] == nim) {
           debugPrint("DEBUG: Received unlock signal from Dosen");
           _isUnlockedByDosen = true;
+          
+          if (_currentSesiId != null) {
+            try {
+              await _service.updateSesiPengerjaanStatus(_currentSesiId!, 'ACTIVE');
+            } catch (e) {
+              debugPrint("Gagal update DB ke ACTIVE saat unlock: $e");
+            }
+          }
+          await updatePresenceStatus(namaMahasiswa, nim, 'AMAN');
+          
           notifyListeners();
         }
       },

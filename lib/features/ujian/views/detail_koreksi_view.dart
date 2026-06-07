@@ -74,7 +74,9 @@ class _DetailKoreksiViewState extends State<DetailKoreksiView> {
 
     final filteredDetail = vm.detailPengerjaan.where((item) {
       final teksSoal = item['soal']['teks_soal'].toString().toLowerCase();
-      return teksSoal.contains(_searchQuery.toLowerCase());
+      final tipe = (item['soal']['tipe_soal'] ?? "").toString().toLowerCase();
+      final isEssay = tipe == 'essai' || tipe == 'essay';
+      return isEssay && teksSoal.contains(_searchQuery.toLowerCase());
     }).toList();
 
     return Scaffold(
@@ -149,10 +151,6 @@ class _DetailKoreksiViewState extends State<DetailKoreksiView> {
                     itemCount: filteredDetail.length,
                     itemBuilder: (context, index) {
                       final item = filteredDetail[index];
-                      // SRP: Fokus pada essai untuk koreksi manual
-                      if (item['soal']['tipe_soal'] != 'essai')
-                        return const SizedBox.shrink();
-
                       final jwbId = item['jawaban']['id'];
                       final bobot = item['soal']['bobot_nilai'] ?? 0;
 
