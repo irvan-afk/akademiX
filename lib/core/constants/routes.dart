@@ -4,6 +4,8 @@ import 'package:akademix/features/onboarding/onboarding_view.dart';
 import 'package:akademix/features/auth/views/login_view.dart';
 import 'package:akademix/features/dashboard/views/dashboard_view.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 class Routes {
   static const String onboarding = '/';
   static const String login = '/login';

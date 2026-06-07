@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:akademix/core/constants/routes.dart';
 
 // Import Auth
 import 'package:akademix/features/auth/data/auth_repository_impl.dart';
@@ -60,6 +61,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'AkademiX',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

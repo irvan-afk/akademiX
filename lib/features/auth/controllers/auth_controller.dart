@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:akademix/core/models/user_model.dart';
 import 'package:akademix/features/auth/model/auth_usecase.dart';
+import 'package:akademix/core/constants/routes.dart';
 
 class AuthController extends ChangeNotifier {
   final AuthUsecase _authUsecase;
@@ -236,6 +237,7 @@ class AuthController extends ChangeNotifier {
       if (!isValid) {
         print("Sesi tidak valid (login di device lain). Logout otomatis.");
         logout();
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(Routes.login, (route) => false);
       }
     });
   }
