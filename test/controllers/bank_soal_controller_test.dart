@@ -1,4 +1,4 @@
-import 'package:akademix/core/database/local_db_gateway.dart';
+  import 'package:akademix/core/database/local_db_gateway.dart';
 import 'package:akademix/features/bank_soal/controllers/bank_soal_controller.dart';
 import 'package:akademix/features/bank_soal/models/bank_soal_model.dart';
 import 'package:akademix/features/bank_soal/services/bank_soal_gateway.dart';
@@ -116,6 +116,11 @@ class FakeBankSoalService implements BankSoalGateway {
     required DateTime waktuSelesai,
   }) async {
     return upsertResponse!;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetchUjianWithSoal(int ujianId) async {
+    return null;
   }
 
   @override
