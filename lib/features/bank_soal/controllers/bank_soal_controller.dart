@@ -1,11 +1,19 @@
 import 'package:flutter/foundation.dart';
+import '../../../core/database/local_db_gateway.dart';
 import '../../../core/database/local_db_service.dart';
 import '../models/bank_soal_model.dart';
+import '../services/bank_soal_gateway.dart';
 import '../services/bank_soal_service.dart';
 
 class BankSoalController extends ChangeNotifier {
-  final LocalDbService _localDbService = LocalDbService.instance;
-  final BankSoalService _bankSoalService = BankSoalService();
+  BankSoalController({
+    BankSoalGateway? bankSoalService,
+    LocalDbGateway? localDb,
+  }) : _bankSoalService = bankSoalService ?? BankSoalService(),
+       _localDbService = localDb ?? LocalDbService.instance;
+
+  final LocalDbGateway _localDbService;
+  final BankSoalGateway _bankSoalService;
 
   bool _isLoading = false;
   String? _lastActionMessage;
@@ -36,7 +44,8 @@ class BankSoalController extends ChangeNotifier {
           ].whereType<String>().where((v) => v.isNotEmpty).join(' • ')
         : 'Kelas ${item['kelas_id'] ?? '-'}';
 
-    final namaMk = item['MATA_KULIAH']?['nama'] ?? 'MK ${item['mata_kuliah_id']}';
+    final namaMk =
+        item['MATA_KULIAH']?['nama'] ?? 'MK ${item['mata_kuliah_id']}';
     return '$namaMk • $kelasLabel';
   }
 
@@ -76,9 +85,7 @@ class BankSoalController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final latest = await _localDbService.getLatestBankSoal(
-        dosenId: dosenId,
-      );
+      final latest = await _localDbService.getLatestBankSoal(dosenId: dosenId);
 
       if (latest == null) {
         _draft = BankSoalModel.empty(dosenId: dosenId);
@@ -319,7 +326,9 @@ class BankSoalController extends ChangeNotifier {
 
     try {
       final waktuMulai = _draft.waktuMulai ?? DateTime.now();
-      final waktuSelesai = waktuMulai.add(Duration(minutes: _draft.durasiMenit));
+      final waktuSelesai = waktuMulai.add(
+        Duration(minutes: _draft.durasiMenit),
+      );
 
       final result = await _bankSoalService.upsertUjian(
         ujianId: _draft.remoteUjianId,
@@ -344,14 +353,16 @@ class BankSoalController extends ChangeNotifier {
           'ujian_id': savedUjianId,
           'teks_soal': question.teksSoal,
           'tipe_soal': question.tipeSoal,
-          'opsi_jawaban': question.opsiJawaban.isEmpty ? null : question.opsiJawaban,
+          'opsi_jawaban': question.opsiJawaban.isEmpty
+              ? null
+              : question.opsiJawaban,
           'bobot_nilai': question.poin,
           'kunci_jawaban': question.kunciJawaban,
         };
       }).toList();
 
       await _bankSoalService.replaceSoalForUjian(savedUjianId, soalRows);
-      
+
       return true;
     } catch (e) {
       debugPrint('BankSoalController._syncToSupabase error: $e');

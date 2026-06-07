@@ -1,3 +1,6 @@
+import 'package:flutter/foundation.dart';
+import 'package:akademix/core/config/debug_config.dart';
+
 class SoalModel {
   final int id;
   final int ujianId;
@@ -20,14 +23,20 @@ class SoalModel {
   factory SoalModel.fromJson(Map<String, dynamic> json) {
     try {
       final tipeSoalValue = json['tipe_soal'] ?? json['tipeSoal'];
-      print(
-        "DEBUG SoalModel: tipe_soal raw value = '$tipeSoalValue' (type: ${tipeSoalValue.runtimeType})",
-      );
-
+      if (DebugConfig.enableLogs && kDebugMode) {
+        // concise and clear debug message
+        // tipeSoalValue may be null
+        debugPrint('SoalModel.fromJson: tipe_soal raw="${tipeSoalValue}"');
+      }
       String normalizedTipeSoal = '';
       if (tipeSoalValue != null) {
         normalizedTipeSoal = tipeSoalValue.toString().toLowerCase().trim();
-        print("DEBUG SoalModel: normalized tipe_soal = '$normalizedTipeSoal'");
+        // normalized tipe_soal computed
+        if (DebugConfig.enableLogs && kDebugMode) {
+          debugPrint(
+            'SoalModel.fromJson: normalized tipe_soal="$normalizedTipeSoal"',
+          );
+        }
       }
 
       Map<String, dynamic> opsi = {};
@@ -36,7 +45,6 @@ class SoalModel {
         try {
           opsi = Map<String, dynamic>.from(opsiRaw);
         } catch (e) {
-          print("Warning: opsi_jawaban type mismatch, using empty map");
           opsi = {};
         }
       }
@@ -56,7 +64,9 @@ class SoalModel {
             '',
       );
     } catch (e) {
-      print("Error parsing SoalModel from JSON: $e, JSON: $json");
+      if (DebugConfig.enableLogs && kDebugMode) {
+        debugPrint('SoalModel.fromJson error: $e');
+      }
       rethrow;
     }
   }

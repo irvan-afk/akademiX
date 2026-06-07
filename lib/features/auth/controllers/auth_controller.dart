@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:akademix/core/models/user_model.dart';
 import 'package:akademix/features/auth/model/auth_usecase.dart';
+import 'package:flutter/foundation.dart';
+import 'package:akademix/core/config/debug_config.dart';
 import 'package:akademix/core/constants/routes.dart';
 
 class AuthController extends ChangeNotifier {
   final AuthUsecase _authUsecase;
   Timer? _sessionTimer;
+  final bool enableSessionTimer;
 
-  AuthController(this._authUsecase);
+  AuthController(this._authUsecase, {this.enableSessionTimer = true});
 
   UserModel? _currentUser;
   Map<String, dynamic>? _userData;
@@ -31,14 +34,16 @@ class AuthController extends ChangeNotifier {
     try {
       final result = await _authUsecase.login(username, password);
 
-      // --- DEBUGGING AREA ---
-      print("--- HASIL LOGIN SUPABASE ---");
-      print("Login Sukses: ${result.isSuccess}");
-      if (result.isSuccess) {
-        print("Role Terdeteksi: ${result.user?.role}");
-        print("Username: ${result.user?.username}");
-      } else {
-        print("Error Message: ${result.errorMessage}");
+      if (DebugConfig.enableLogs && kDebugMode) {
+        if (result.isSuccess) {
+          debugPrint(
+            'AuthController.login: success role=${result.user?.role} username=${result.user?.username}',
+          );
+        } else {
+          debugPrint(
+            'AuthController.login: failed message=${result.errorMessage}',
+          );
+        }
       }
 
       if (result.isSuccess) {
@@ -60,7 +65,9 @@ class AuthController extends ChangeNotifier {
           _userData!['no_hp'] = localNoHp;
         }
 
-        _startSessionTimer();
+        if (enableSessionTimer) {
+          _startSessionTimer();
+        }
         notifyListeners();
         return true;
       } else {
@@ -68,7 +75,6 @@ class AuthController extends ChangeNotifier {
         return false;
       }
     } catch (e) {
-      print("Exception Error: $e");
       _errorMessage = "Terjadi kesalahan sistem: $e";
       return false;
     } finally {
@@ -231,15 +237,22 @@ class AuthController extends ChangeNotifier {
     _stopSessionTimer();
     // Cek setiap 10 detik apakah akun login di device lain
     _sessionTimer = Timer.periodic(const Duration(seconds: 10), (timer) async {
-      if (_currentUser == null || _currentUser!.deviceId == null) return;
-      
-      final isValid = await _authUsecase.verifySession(_currentUser!.id, _currentUser!.deviceId!);
-      if (!isValid) {
-        print("Sesi tidak valid (login di device lain). Logout otomatis.");
-        logout();
-        navigatorKey.currentState?.pushNamedAndRemoveUntil(Routes.login, (route) => false);
-      }
+      await checkSessionOnce();
     });
+  }
+
+  @visibleForTesting
+  Future<void> checkSessionOnce() async {
+    if (_currentUser == null || _currentUser!.deviceId == null) return;
+
+    final isValid = await _authUsecase.verifySession(
+      _currentUser!.id,
+      _currentUser!.deviceId!,
+    );
+    if (!isValid) {
+      print('Sesi tidak valid (login di device lain). Logout otomatis.');
+      logout();
+    }
   }
 
   void _stopSessionTimer() {

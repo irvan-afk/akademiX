@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DosenUjianService {
-  final _supabase = Supabase.instance.client;
+  late final _supabase = Supabase.instance.client;
 
   String _generateRandomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -60,7 +60,9 @@ class DosenUjianService {
   Future<List<dynamic>> fetchSubmissions(int ujianId) async {
     final response = await _supabase
         .from('SESI_PENGERJAAN')
-        .select('id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim)')
+        .select(
+          'id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim)',
+        )
         .eq('ujian_id', ujianId)
         .eq('status_pengerjaan', 'SUBMITTED');
     return response as List;
@@ -69,7 +71,9 @@ class DosenUjianService {
   Future<List<dynamic>> fetchPesertaUjian(int ujianId) async {
     final response = await _supabase
         .from('SESI_PENGERJAAN')
-        .select('id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim)')
+        .select(
+          'id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim)',
+        )
         .eq('ujian_id', ujianId);
     return response as List;
   }
@@ -91,14 +95,20 @@ class DosenUjianService {
     return response as List;
   }
 
-  Future<void> updateEssayGrade(int jawabanId, int nilai, String feedback) async {
+  Future<void> updateEssayGrade(
+    int jawabanId,
+    int nilai,
+    String feedback,
+  ) async {
     await _supabase
         .from('JAWABAN_MAHASISWA')
         .update({'nilai': nilai, 'feedback': feedback})
         .eq('id', jawabanId);
   }
 
-  Future<Map<String, dynamic>?> fetchUjianTampilkanNilaiStatus(int ujianId) async {
+  Future<Map<String, dynamic>?> fetchUjianTampilkanNilaiStatus(
+    int ujianId,
+  ) async {
     return await _supabase
         .from('UJIAN')
         .select('tampilkan_nilai')
@@ -109,7 +119,9 @@ class DosenUjianService {
   Future<List<dynamic>> fetchRekapNilaiData(int ujianId) async {
     final response = await _supabase
         .from('SESI_PENGERJAAN')
-        .select('id, MAHASISWA(nama, nim), JAWABAN_MAHASISWA(nilai, soal(tipe_soal))')
+        .select(
+          'id, MAHASISWA(nama, nim), JAWABAN_MAHASISWA(nilai, soal(tipe_soal))',
+        )
         .eq('ujian_id', ujianId)
         .eq('status_pengerjaan', 'SUBMITTED');
     return response as List;
