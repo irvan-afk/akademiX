@@ -12,13 +12,6 @@ class DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authController = context.watch<AuthController>();
-    
-    if (authController.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     final role = authController.currentUser?.role;
 
     if (role == UserRole.dosen) {

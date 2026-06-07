@@ -286,61 +286,155 @@ class ProfileView extends StatelessWidget {
   ) {
     final controller = TextEditingController(text: currentValue);
     final formKey = GlobalKey<FormState>();
+    final isEmail = fieldName.toLowerCase().contains("email");
+    final icon = isEmail ? Icons.mail_outline : Icons.phone_outlined;
+    final subtitle = isEmail
+        ? "Ubah alamat email Anda untuk menerima notifikasi penting."
+        : "Ubah nomor telepon Anda untuk kontak darurat.";
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("Ubah $fieldName", style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: controller,
-            decoration: InputDecoration(
-              labelText: fieldName,
-              border: const OutlineInputBorder(),
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              top: 8,
+              left: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.black54),
+                onPressed: () => Navigator.pop(dialogContext),
+              ),
             ),
-            validator: (val) => (val == null || val.trim().isEmpty) ? "Wajib diisi" : null,
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2962FF).withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(icon, size: 28, color: const Color(0xFF2962FF)),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "Ubah $fieldName",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: controller,
+                      keyboardType: isEmail
+                          ? TextInputType.emailAddress
+                          : TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: fieldName,
+                        labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              const BorderSide(color: Color(0xFF2962FF), width: 1.5),
+                        ),
+                      ),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return "Wajib diisi";
+                        if (isEmail) {
+                          final emailRegExp = RegExp(
+                              r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+");
+                          if (!emailRegExp.hasMatch(val.trim())) {
+                            return "Format email tidak valid";
+                          }
+                        } else {
+                          if (val.trim().length < 9) {
+                            return "Nomor HP minimal 9 karakter";
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2962FF),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+                          final success = await onSave(controller.text.trim());
+                          if (success) {
+                            if (dialogContext.mounted) Navigator.pop(dialogContext);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("$fieldName berhasil diubah!"),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } else {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("Gagal mengubah $fieldName."),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text(
+                          "Simpan",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Batal", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2962FF),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final success = await onSave(controller.text.trim());
-              if (success) {
-                if (dialogContext.mounted) Navigator.pop(dialogContext);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("$fieldName berhasil diubah!"),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } else {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Gagal mengubah $fieldName."),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text("Simpan", style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -358,106 +452,217 @@ class ProfileView extends StatelessWidget {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("Ubah Kata Sandi", style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: oldPasswordController,
-                    obscureText: obscureOld,
-                    decoration: InputDecoration(
-                      labelText: "Kata Sandi Lama",
-                      suffixIcon: IconButton(
-                        icon: Icon(obscureOld ? Icons.visibility_off : Icons.visibility, size: 20),
-                        onPressed: () => setState(() => obscureOld = !obscureOld),
-                      ),
-                    ),
-                    validator: (val) => (val == null || val.isEmpty) ? "Wajib diisi" : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: newPasswordController,
-                    obscureText: obscureNew,
-                    decoration: InputDecoration(
-                      labelText: "Kata Sandi Baru",
-                      suffixIcon: IconButton(
-                        icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility, size: 20),
-                        onPressed: () => setState(() => obscureNew = !obscureNew),
-                      ),
-                    ),
-                    validator: (val) => (val == null || val.length < 6) ? "Minimal 6 karakter" : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: confirmPasswordController,
-                    obscureText: obscureConfirm,
-                    decoration: InputDecoration(
-                      labelText: "Konfirmasi Kata Sandi Baru",
-                      suffixIcon: IconButton(
-                        icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20),
-                        onPressed: () => setState(() => obscureConfirm = !obscureConfirm),
-                      ),
-                    ),
-                    validator: (val) {
-                      if (val != newPasswordController.text) {
-                        return "Konfirmasi kata sandi tidak cocok";
-                      }
-                      return null;
-                    },
-                  ),
-                ],
+        builder: (context, setState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              Positioned(
+                top: 8,
+                left: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.black54),
+                  onPressed: () => Navigator.pop(dialogContext),
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Batal", style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2962FF),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              onPressed: () async {
-                if (!formKey.currentState!.validate()) return;
-                
-                final success = await authVm.changePassword(
-                  oldPasswordController.text.trim(),
-                  newPasswordController.text.trim(),
-                );
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 12),
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2962FF).withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.lock_outline, size: 28, color: Color(0xFF2962FF)),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "Ubah Kata Sandi",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Silakan masukkan kata sandi lama dan baru Anda.",
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        
+                        // Old Password
+                        TextFormField(
+                          controller: oldPasswordController,
+                          obscureText: obscureOld,
+                          decoration: InputDecoration(
+                            labelText: "Kata Sandi Lama",
+                            labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF2962FF), width: 1.5),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureOld ? Icons.visibility_off : Icons.visibility, size: 20, color: Colors.grey),
+                              onPressed: () => setState(() => obscureOld = !obscureOld),
+                            ),
+                          ),
+                          validator: (val) => (val == null || val.isEmpty) ? "Wajib diisi" : null,
+                        ),
+                        const SizedBox(height: 12),
 
-                if (success) {
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext);
-                  }
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Kata sandi berhasil diubah!"),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } else {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(authVm.errorMessage ?? "Gagal mengubah kata sandi."),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text("Simpan", style: TextStyle(color: Colors.white)),
-            ),
-          ],
+                        // New Password
+                        TextFormField(
+                          controller: newPasswordController,
+                          obscureText: obscureNew,
+                          decoration: InputDecoration(
+                            labelText: "Kata Sandi Baru",
+                            labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF2962FF), width: 1.5),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility, size: 20, color: Colors.grey),
+                              onPressed: () => setState(() => obscureNew = !obscureNew),
+                            ),
+                          ),
+                          validator: (val) => (val == null || val.length < 6) ? "Minimal 6 karakter" : null,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Confirm New Password
+                        TextFormField(
+                          controller: confirmPasswordController,
+                          obscureText: obscureConfirm,
+                          decoration: InputDecoration(
+                            labelText: "Konfirmasi Kata Sandi Baru",
+                            labelStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFF2962FF), width: 1.5),
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility, size: 20, color: Colors.grey),
+                              onPressed: () => setState(() => obscureConfirm = !obscureConfirm),
+                            ),
+                          ),
+                          validator: (val) {
+                            if (val != newPasswordController.text) {
+                              return "Konfirmasi kata sandi tidak cocok";
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2962FF),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () async {
+                              if (!formKey.currentState!.validate()) return;
+                              
+                              final success = await authVm.changePassword(
+                                oldPasswordController.text.trim(),
+                                newPasswordController.text.trim(),
+                              );
+
+                              if (success) {
+                                if (dialogContext.mounted) {
+                                  Navigator.pop(dialogContext);
+                                }
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text("Kata sandi berhasil diubah!"),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(authVm.errorMessage ?? "Gagal mengubah kata sandi."),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            child: const Text(
+                              "Simpan",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
