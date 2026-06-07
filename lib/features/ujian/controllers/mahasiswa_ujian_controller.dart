@@ -49,6 +49,7 @@ class MahasiswaUjianController extends ChangeNotifier {
   Timer? _timer;
   final Stopwatch _stopwatch = Stopwatch();
   Duration _timeRemaining = const Duration(hours: 2);
+  Duration get timeRemaining => _timeRemaining;
   String get timerString => _formatDuration(_timeRemaining);
 
   Future<void> checkOfflineSubmission({int? mahasiswaId}) async {

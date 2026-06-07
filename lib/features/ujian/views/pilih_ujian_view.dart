@@ -43,11 +43,11 @@ class _PilihUjianViewState extends State<PilihUjianView> {
       final isMatchSearch = judul.contains(_searchQuery.toLowerCase());
       
       if (widget.isForRekap) {
-        // Rekap Nilai shows CLOSED exams (and PUBLISHED if you want, but user asked for CLOSED in rekap)
+        // Rekap Nilai: tampilkan ujian yang sudah CLOSED (dan PUBLISHED jika diperlukan)
         return isMatchSearch && (ujian['status_ujian'] == 'CLOSED' || ujian['status_ujian'] == 'PUBLISHED');
       } else {
-        // Koreksi Essai shows only PUBLISHED
-        return isMatchSearch && ujian['status_ujian'] == 'PUBLISHED';
+        // Koreksi Essay: hanya bisa dikoreksi setelah ujian SELESAI (CLOSED)
+        return isMatchSearch && ujian['status_ujian'] == 'CLOSED';
       }
     }).toList();
 
@@ -175,13 +175,24 @@ class _PilihUjianViewState extends State<PilihUjianView> {
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty
-                ? "Belum ada ujian aktif"
+                ? (widget.isForRekap
+                    ? "Belum ada ujian yang tersedia"
+                    : "Belum ada ujian yang selesai")
                 : "Ujian tidak ditemukan",
             style: const TextStyle(
               color: Colors.grey,
               fontWeight: FontWeight.bold,
             ),
           ),
+          if (_searchQuery.isEmpty && !widget.isForRekap)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                "Koreksi essay hanya tersedia\nsetelah ujian ditutup (CLOSED)",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ),
         ],
       ),
     );

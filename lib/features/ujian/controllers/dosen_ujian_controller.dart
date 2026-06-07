@@ -22,6 +22,7 @@ class DosenUjianController extends ChangeNotifier {
   bool _isNilaiPublished = false;
 
   RealtimeChannel? _monitoringChannel;
+  int? _currentMonitoringUjianId; // simpan ujianId aktif untuk unlock
   List<Map<String, dynamic>> _onlineStudents = [];
   List<Map<String, dynamic>> get onlineStudents => _onlineStudents;
 
@@ -321,6 +322,7 @@ class DosenUjianController extends ChangeNotifier {
   void startMonitoring(int ujianId) async {
     if (_monitoringChannel != null) return;
 
+    _currentMonitoringUjianId = ujianId;
     await fetchPesertaUjian(ujianId);
 
     _monitoringChannel = _service.getMonitoringChannel(ujianId);
@@ -346,14 +348,12 @@ class DosenUjianController extends ChangeNotifier {
 
       for (final state in newState) {
         for (final presence in state.presences) {
-          if (presence.payload != null) {
-            currentOnline.add({
-              'nama': presence.payload['nama'],
-              'nim': presence.payload['nim'],
-              'status': presence.payload['status'],
-              'violations': presence.payload['violations'] ?? 0,
-            });
-          }
+          currentOnline.add({
+            'nama': presence.payload['nama'],
+            'nim': presence.payload['nim'],
+            'status': presence.payload['status'],
+            'violations': presence.payload['violations'] ?? 0,
+          });
         }
       }
       _onlineStudents = currentOnline;
@@ -388,7 +388,13 @@ class DosenUjianController extends ChangeNotifier {
 
         if (mahasiswaRes != null && mahasiswaRes.isNotEmpty) {
           final mahasiswaId = mahasiswaRes['id'];
-          await _service.updateSesiPengerjaanStatusToActive(mahasiswaId);
+          // Sertakan ujianId agar hanya sesi ujian yang aktif yang diupdate
+          if (_currentMonitoringUjianId != null) {
+            await _service.updateSesiPengerjaanStatusToActive(
+              mahasiswaId,
+              _currentMonitoringUjianId!,
+            );
+          }
 
           int index = _pesertaUjian.indexWhere(
             (p) => p['MAHASISWA']['id'] == mahasiswaId,
@@ -408,6 +414,7 @@ class DosenUjianController extends ChangeNotifier {
   void stopMonitoring() {
     _monitoringChannel?.unsubscribe();
     _monitoringChannel = null;
+    _currentMonitoringUjianId = null;
     _onlineStudents.clear();
     notifyListeners();
   }
@@ -416,8 +423,16 @@ class DosenUjianController extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
+    // 1. Fetch data peserta terbaru dari DB (setelah unlock, status sudah ACTIVE di sini)
     await fetchPesertaUjian(ujianId);
-    stopMonitoring();
+
+    // 2. Reset channel tanpa menghapus _onlineStudents terlebih dahulu,
+    //    agar data presence yang sudah ada tidak hilang sebelum sync ulang.
+    _monitoringChannel?.unsubscribe();
+    _monitoringChannel = null;
+    _currentMonitoringUjianId = ujianId;
+
+    // 3. Reconnect channel baru
     startMonitoring(ujianId);
 
     _isLoading = false;
