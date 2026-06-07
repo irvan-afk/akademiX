@@ -15,6 +15,7 @@ class BankSoalService implements BankSoalGateway {
     );
   }
 
+  @override
   Future<List<Map<String, dynamic>>> getPengampuForDosen(int dosenId) async {
     final response = await _supabase
         .from('PENGAMPU')
@@ -27,6 +28,7 @@ class BankSoalService implements BankSoalGateway {
     return List<Map<String, dynamic>>.from(response as List);
   }
 
+  @override
   Future<Map<String, dynamic>> upsertUjian({
     required int? ujianId,
     required BankSoalModel draft,
@@ -77,6 +79,7 @@ class BankSoalService implements BankSoalGateway {
     }
   }
 
+  @override
   Future<void> replaceSoalForUjian(
     int ujianId,
     List<Map<String, dynamic>> soalRows,
@@ -84,6 +87,35 @@ class BankSoalService implements BankSoalGateway {
     await _supabase.from('soal').delete().eq('ujian_id', ujianId);
     if (soalRows.isNotEmpty) {
       await _supabase.from('soal').insert(soalRows);
+    }
+  }
+
+  /// Fetch ujian header + soal list dari Supabase (fallback jika lokal tidak ada).
+  @override
+  Future<Map<String, dynamic>?> fetchUjianWithSoal(int ujianId) async {
+    try {
+      final ujianRes = await _supabase
+          .from('UJIAN')
+          .select(
+            'id, pengampu_id, judul_ujian, durasi_menit, waktu_mulai, waktu_selesai, '
+            'status_ujian, kode_ujian, kode_pengawasan, pin_mulai, '
+            'PENGAMPU(id, mata_kuliah_id, kelas_id, MATA_KULIAH(nama), KELAS(nama, angkatan))',
+          )
+          .eq('id', ujianId)
+          .single();
+
+      final soalRes = await _supabase
+          .from('soal')
+          .select('id, teks_soal, tipe_soal, opsi_jawaban, bobot_nilai, kunci_jawaban')
+          .eq('ujian_id', ujianId)
+          .order('id', ascending: true);
+
+      return {
+        'ujian': ujianRes,
+        'soal': List<Map<String, dynamic>>.from(soalRes as List),
+      };
+    } catch (e) {
+      return null;
     }
   }
 }

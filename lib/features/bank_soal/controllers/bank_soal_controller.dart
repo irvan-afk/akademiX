@@ -110,18 +110,113 @@ class BankSoalController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 1. Coba load dari local DB terlebih dahulu
       final latest = await _localDbService.getBankSoalByRemoteUjianId(
         remoteUjianId,
       );
 
-      if (latest == null) {
+      if (latest != null) {
+        _draft = BankSoalModel.fromMap(
+          Map<String, dynamic>.from(latest['bank_soal'] as Map),
+          List<Map<String, dynamic>>.from(latest['soal'] as List),
+        );
+        return true;
+      }
+
+      // 2. Fallback: fetch dari Supabase jika lokal tidak ada
+      debugPrint('BankSoalController: lokal kosong, fetch dari Supabase untuk ujianId=$remoteUjianId');
+      final remote = await _bankSoalService.fetchUjianWithSoal(remoteUjianId);
+
+      if (remote == null) {
         return false;
       }
 
-      _draft = BankSoalModel.fromMap(
-        Map<String, dynamic>.from(latest['bank_soal'] as Map),
-        List<Map<String, dynamic>>.from(latest['soal'] as List),
+      final ujian = remote['ujian'] as Map<String, dynamic>;
+      final soalList = remote['soal'] as List<Map<String, dynamic>>;
+
+      // Bangun pertanyaan dari data remote (field berbeda: bobot_nilai vs poin)
+      final questions = soalList.asMap().entries.map((entry) {
+        final i = entry.key;
+        final s = entry.value;
+        final opsiRaw = s['opsi_jawaban'];
+        final opsi = <String, String>{};
+        if (opsiRaw is Map) {
+          opsiRaw.forEach((k, v) => opsi[k.toString()] = v?.toString() ?? '');
+        }
+        return BankSoalQuestionModel(
+          localId: i + 1,
+          tipeSoal: s['tipe_soal']?.toString() ?? 'pilihan_ganda',
+          teksSoal: s['teks_soal']?.toString() ?? '',
+          opsiJawaban: opsi,
+          kunciJawaban: s['kunci_jawaban']?.toString() ?? '',
+          poin: (s['bobot_nilai'] as num? ?? 0).toInt(),
+        );
+      }).toList();
+
+      // Ambil data pengampu jika ada
+      final pengampuData = ujian['PENGAMPU'] as Map<String, dynamic>?;
+      final pengampuId = (pengampuData?['id'] ?? ujian['pengampu_id']) as int?;
+      String? pengampuLabel;
+      String mataKuliah = '';
+      if (pengampuData != null) {
+        final mk = pengampuData['MATA_KULIAH'] as Map<String, dynamic>?;
+        final kelas = pengampuData['KELAS'] as Map<String, dynamic>?;
+        mataKuliah = mk?['nama']?.toString() ?? '';
+        final kelasNama = kelas?['nama']?.toString() ?? '';
+        final angkatan = kelas?['angkatan']?.toString();
+        pengampuLabel = angkatan != null && angkatan.isNotEmpty
+            ? '$mataKuliah • $kelasNama • Angkatan $angkatan'
+            : '$mataKuliah • $kelasNama';
+      }
+
+      final waktuMulai = ujian['waktu_mulai'] != null
+          ? DateTime.tryParse(ujian['waktu_mulai'].toString())
+          : null;
+
+      final now = DateTime.now();
+      _draft = BankSoalModel(
+        id: null, // belum ada di lokal DB
+        dosenId: _draft.dosenId,
+        pengampuId: pengampuId,
+        pengampuLabel: pengampuLabel,
+        remoteUjianId: remoteUjianId,
+        kodeUjian: ujian['kode_ujian']?.toString(),
+        kodePengawasan: ujian['kode_pengawasan']?.toString(),
+        pinMulai: ujian['pin_mulai']?.toString(),
+        mataKuliah: mataKuliah,
+        judulUjian: ujian['judul_ujian']?.toString() ?? '',
+        durasiMenit: (ujian['durasi_menit'] as num? ?? 0).toInt(),
+        waktuMulai: waktuMulai,
+        status: (ujian['status_ujian']?.toString() ?? 'DRAFT').toLowerCase(),
+        createdAt: now,
+        updatedAt: now,
+        questions: questions,
       );
+
+      // Cache ke lokal DB agar buka berikutnya lebih cepat
+      try {
+        final savedId = await _localDbService.saveBankSoal(
+          id: null,
+          dosenId: _draft.dosenId,
+          pengampuId: _draft.pengampuId,
+          pengampuLabel: _draft.pengampuLabel,
+          remoteUjianId: remoteUjianId,
+          kodeUjian: _draft.kodeUjian,
+          kodePengawasan: _draft.kodePengawasan,
+          pinMulai: _draft.pinMulai,
+          mataKuliah: _draft.mataKuliah,
+          judulUjian: _draft.judulUjian,
+          durasiMenit: _draft.durasiMenit,
+          waktuMulai: _draft.waktuMulai,
+          status: _draft.status,
+          soalList: _draft.toQuestionMaps(),
+        );
+        _draft = _draft.copyWith(id: savedId);
+      } catch (cacheErr) {
+        debugPrint('BankSoalController: gagal cache ke lokal: $cacheErr');
+        // Tidak fatal – data tetap ada di memory
+      }
+
       return true;
     } catch (e) {
       debugPrint('BankSoalController.loadDraftForRemoteUjian error: $e');
