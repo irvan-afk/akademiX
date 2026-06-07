@@ -5,9 +5,11 @@ import 'package:akademix/features/auth/controllers/auth_controller.dart';
 import 'package:akademix/features/auth/views/profile_view.dart';
 import 'package:akademix/core/constants/routes.dart';
 import '../../bank_soal/views/bank_soal_list_view.dart';
+import '../../bank_soal/views/buat_bank_soal_view.dart';
 import '../../ujian/views/publish_bank_soal_view.dart';
 import '../../ujian/views/pilih_ujian_view.dart';
 import '../../ujian/controllers/dosen_ujian_controller.dart';
+import 'jadwal_dosen_view.dart';
 import '../../ujian/views/monitoring_ujian_view.dart';
 import '../../ujian/views/rekap_nilai_view.dart';
 class DashboardDosenView extends StatefulWidget {
@@ -20,10 +22,23 @@ class DashboardDosenView extends StatefulWidget {
 class _DashboardDosenViewState extends State<DashboardDosenView> {
   int _currentIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authVm = context.read<AuthController>();
+      final dosenId = authVm.userData?['id'] as int? ?? 0;
+      if (dosenId != 0) {
+        context.read<DosenUjianController>().fetchUjianForDosen(dosenId);
+      }
+      context.read<DosenUjianController>().fetchPublishedExams();
+    });
+  }
+
   List<Widget> _buildPages(BuildContext context) {
     return [
       _buildBerandaPage(context),
-      _buildJadwalPage(),
+      const JadwalDosenView(),
       _buildRiwayatPage(),
       const ProfileView(),
     ];
@@ -113,41 +128,7 @@ class _DashboardDosenViewState extends State<DashboardDosenView> {
     );
   }
 
-  Widget _buildJadwalPage() {
-    return SafeArea(
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFF2962FF),
-            child: const Row(
-              children: [
-                SizedBox(width: 8),
-                Text(
-                  "Jadwal Mengajar",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Content
-          const Expanded(
-            child: Center(
-              child: Text(
-                "Fitur Jadwal akan segera hadir",
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Jadwal page is now refactored to JadwalDosenView in jadwal_dosen_view.dart
 
   Widget _buildRiwayatPage() {
     final vm = context.watch<DosenUjianController>();
@@ -240,13 +221,24 @@ class _DashboardDosenViewState extends State<DashboardDosenView> {
       backgroundColor: const Color(0xFFF8FAFF),
       body: _buildPages(context)[_currentIndex],
       bottomNavigationBar: _buildBottomNav(context),
-      floatingActionButton: _currentIndex == 0
-          ? FloatingActionButton(
-              onPressed: () {},
-              backgroundColor: const Color(0xFF2962FF),
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BuatBankSoalView(startFresh: true),
+            ),
+          ).then((value) {
+            final authVm = context.read<AuthController>();
+            final dosenId = authVm.userData?['id'] as int? ?? 0;
+            if (dosenId != 0 && mounted) {
+              context.read<DosenUjianController>().fetchUjianForDosen(dosenId);
+            }
+          });
+        },
+        backgroundColor: const Color(0xFF2962FF),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }

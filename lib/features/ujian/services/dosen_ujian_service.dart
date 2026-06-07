@@ -61,7 +61,7 @@ class DosenUjianService {
     final response = await _supabase
         .from('SESI_PENGERJAAN')
         .select(
-          'id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim)',
+          'id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim, avatar_url)',
         )
         .eq('ujian_id', ujianId)
         .eq('status_pengerjaan', 'SUBMITTED');
@@ -72,7 +72,7 @@ class DosenUjianService {
     final response = await _supabase
         .from('SESI_PENGERJAAN')
         .select(
-          'id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim)',
+          'id, ujian_id, mahasiswa_id, status_pengerjaan, MAHASISWA(id, nama, nim, avatar_url)',
         )
         .eq('ujian_id', ujianId);
     return response as List;
@@ -154,11 +154,12 @@ class DosenUjianService {
         .maybeSingle();
   }
 
-  Future<void> updateSesiPengerjaanStatusToActive(int mahasiswaId) async {
+  Future<void> updateSesiPengerjaanStatusToActive(int mahasiswaId, int ujianId) async {
     await _supabase
         .from('SESI_PENGERJAAN')
         .update({'status_pengerjaan': 'ACTIVE'})
         .eq('mahasiswa_id', mahasiswaId)
+        .eq('ujian_id', ujianId)
         .inFilter('status_pengerjaan', ['LOCKED', 'REJECTED']);
   }
 }

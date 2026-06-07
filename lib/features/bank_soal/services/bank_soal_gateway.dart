@@ -15,4 +15,6 @@ abstract class BankSoalGateway {
     int ujianId,
     List<Map<String, dynamic>> soalRows,
   );
+
+  Future<Map<String, dynamic>?> fetchUjianWithSoal(int ujianId);
 }

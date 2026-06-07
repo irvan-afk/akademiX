@@ -26,6 +26,7 @@ class UjianView extends StatefulWidget {
 class _UjianViewState extends State<UjianView> with WidgetsBindingObserver {
   late StreamSubscription<dynamic> _connectivitySubscription;
   bool _isLockDialogShowing = false;
+
   @override
   void initState() {
     super.initState();
@@ -33,13 +34,39 @@ class _UjianViewState extends State<UjianView> with WidgetsBindingObserver {
     _initSecurityFeatures();
 
     // Memulai ujian saat layar dibuka
-    Future.microtask(() {
+    Future.microtask(() async {
+      if (!mounted) return;
       final vm = context.read<MahasiswaUjianController>();
-      vm.startUjian(widget.ujianId);
+      await vm.startUjian(widget.ujianId);
+
+      if (!mounted) return;
+
       if (vm.isLockedByViolation) {
         _showLockDialog();
       }
+
+      // Jika waktu sudah habis sejak awal (misalnya buka kembali setelah mati),
+      // langsung submit dan navigasi ke hasil.
+      if (vm.timeRemaining == Duration.zero) {
+        await vm.submitUjian();
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/submission-result');
+        }
+        return;
+      }
+
+      // Listener untuk mendeteksi auto-submit saat timer habis
+      vm.addListener(_onControllerChanged);
     });
+  }
+
+  void _onControllerChanged() {
+    final vm = context.read<MahasiswaUjianController>();
+    if (vm.status == SubmissionStatus.success && mounted) {
+      // Hapus listener agar tidak terpanggil berulang
+      vm.removeListener(_onControllerChanged);
+      Navigator.pushReplacementNamed(context, '/submission-result');
+    }
   }
 
   Future<void> _initSecurityFeatures() async {
@@ -97,6 +124,10 @@ class _UjianViewState extends State<UjianView> with WidgetsBindingObserver {
     _connectivitySubscription.cancel();
     ScreenProtector.preventScreenshotOff();
     ScreenProtector.protectDataLeakageWithBlurOff();
+    // Hapus listener jika masih terdaftar
+    try {
+      context.read<MahasiswaUjianController>().removeListener(_onControllerChanged);
+    } catch (_) {}
     super.dispose();
   }
 

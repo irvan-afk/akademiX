@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
 import '../controllers/dosen_ujian_controller.dart';
 import '../../../core/widgets/curved_header.dart';
 import '../../../core/widgets/akademix_card.dart';
@@ -162,6 +163,11 @@ class _MonitoringUjianViewState extends State<MonitoringUjianView> {
                               IconData iconData = isLocked ? Icons.warning_amber_rounded : (isSubmitted ? Icons.check_circle : Icons.person);
                               String statusText = isLocked ? "TERKUNCI" : (isSubmitted ? "SELESAI DIKUMPULKAN" : "MENGERJAKAN (AMAN)");
 
+                              final avatarUrl = student['avatar_url']?.toString();
+                              final isHttp = avatarUrl != null && avatarUrl.startsWith('http');
+                              final isBase64 = avatarUrl != null && avatarUrl.startsWith('data:image');
+                              final hasAvatar = isHttp || isBase64;
+
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 15),
                                 shape: RoundedRectangleBorder(
@@ -171,8 +177,22 @@ class _MonitoringUjianViewState extends State<MonitoringUjianView> {
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.all(15),
                                   leading: CircleAvatar(
+                                    radius: 24,
                                     backgroundColor: cardColor,
-                                    child: Icon(iconData, color: Colors.white),
+                                    child: CircleAvatar(
+                                      radius: 22,
+                                      backgroundColor: Colors.white,
+                                      backgroundImage: hasAvatar
+                                          ? (isHttp
+                                              ? NetworkImage(avatarUrl)
+                                              : (isBase64
+                                                  ? MemoryImage(base64Decode(avatarUrl.split(',').last))
+                                                  : null)) as ImageProvider?
+                                          : null,
+                                      child: hasAvatar
+                                          ? null
+                                          : Icon(iconData, color: cardColor, size: 20),
+                                    ),
                                   ),
                                   title: Text(
                                     student['nama'] ?? 'Unknown',
