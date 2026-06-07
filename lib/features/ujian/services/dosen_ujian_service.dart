@@ -160,6 +160,6 @@ class DosenUjianService {
         .update({'status_pengerjaan': 'ACTIVE'})
         .eq('mahasiswa_id', mahasiswaId)
         .eq('ujian_id', ujianId)
-        .inFilter('status_pengerjaan', ['LOCKED', 'REJECTED']);
+        .inFilter('status_pengerjaan', ['REJECTED']);
   }
 }

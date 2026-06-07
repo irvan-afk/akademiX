@@ -137,10 +137,11 @@ class _BuatBankSoalViewState extends State<BuatBankSoalView> {
     final saved = await vm.saveBankSoal();
     if (!mounted) return;
     if (saved) {
+      _showMessage(vm.lastActionMessage ?? 'Draft berhasil disimpan.');
       Navigator.pop(context, true);
       return;
     }
-    _showMessage(vm.lastActionMessage ?? (saved ? 'Draft tersimpan.' : ''));
+    _showMessage(vm.lastActionMessage ?? 'Gagal menyimpan draft.');
   }
 
   Future<void> _handlePublish() async {
@@ -148,7 +149,12 @@ class _BuatBankSoalViewState extends State<BuatBankSoalView> {
 
     final published = await vm.publishBankSoal();
     if (!mounted) return;
-    _showMessage(vm.lastActionMessage ?? (published ? 'Dipublish.' : ''));
+    if (published) {
+      _showMessage(vm.lastActionMessage ?? 'Bank Soal berhasil dipublikasikan!');
+      Navigator.pop(context, true);
+      return;
+    }
+    _showMessage(vm.lastActionMessage ?? 'Gagal mempublikasikan Bank Soal.');
   }
 
   void _showMessage(String message) {
