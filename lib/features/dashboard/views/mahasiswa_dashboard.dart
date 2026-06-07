@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:akademix/features/auth/controllers/auth_controller.dart';
@@ -180,10 +181,11 @@ class BerandaContent extends StatelessWidget {
     final ujianVm = context.watch<MahasiswaUjianController>();
 
     final String namaMahasiswa = authVm.userData?['nama'] ?? "Mahasiswa";
+    final String? avatarUrl = authVm.userData?['avatar_url']?.toString();
 
     return Column(
       children: [
-        _buildHeader(namaMahasiswa, context),
+        _buildHeader(namaMahasiswa, avatarUrl, context),
         Expanded(
           child: RefreshIndicator(
             onRefresh: () async {
@@ -217,7 +219,10 @@ class BerandaContent extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(String nama, BuildContext context) {
+  Widget _buildHeader(String nama, String? avatarUrl, BuildContext context) {
+    final isHttp = avatarUrl != null && avatarUrl.startsWith('http');
+    final isBase64 = avatarUrl != null && avatarUrl.startsWith('data:image');
+
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -259,22 +264,24 @@ class BerandaContent extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircleAvatar(
+                  CircleAvatar(
                     radius: 25,
-                    backgroundColor: Color(0xFFFFA000),
-                    child: Icon(Icons.face, size: 18, color: Colors.white),
+                    backgroundColor: Colors.white24,
+                    backgroundImage: isHttp
+                        ? NetworkImage(avatarUrl)
+                        : (isBase64
+                            ? MemoryImage(base64Decode(avatarUrl.split(',').last))
+                            : null),
+                    child: (isHttp || isBase64)
+                        ? null
+                        : const Icon(Icons.person, size: 18, color: Colors.white),
                   ),
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.logout, color: Colors.white),
                     onPressed: () {
                       final authVm = context.read<AuthController>();
-                      authVm.logout();
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        Routes.login,
-                        (route) => false,
-                      );
+                      _showLogoutConfirmationDialog(context, authVm);
                     },
                     tooltip: "Logout",
                   ),
@@ -572,6 +579,53 @@ class BerandaContent extends StatelessWidget {
                       ],
                     ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogoutConfirmationDialog(BuildContext context, AuthController authVm) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          "Konfirmasi Keluar",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          "Apakah Anda yakin ingin keluar dari akun Anda?",
+          style: TextStyle(color: Colors.black54),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              "Batal",
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            onPressed: () {
+              Navigator.pop(dialogContext); // Tutup dialog
+              authVm.logout();
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                Routes.login,
+                (route) => false,
+              );
+            },
+            child: const Text("Keluar"),
           ),
         ],
       ),
