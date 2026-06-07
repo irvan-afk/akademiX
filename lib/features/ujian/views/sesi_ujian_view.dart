@@ -208,10 +208,21 @@ class _UjianViewState extends State<UjianView> with WidgetsBindingObserver {
     final soal = vm.daftarSoal[vm.currentIndex];
     final isLastSoal = vm.currentIndex == vm.daftarSoal.length - 1;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: _buildAppBar(context, vm, brightBlue),
-      body: Column(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Anda tidak dapat kembali selama ujian berlangsung. Selesaikan ujian terlebih dahulu!"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: _buildAppBar(context, vm, brightBlue),
+        body: Column(
         children: [
           LinearProgressIndicator(
             value: (vm.currentIndex + 1) / vm.daftarSoal.length,
@@ -281,6 +292,7 @@ class _UjianViewState extends State<UjianView> with WidgetsBindingObserver {
           _buildBottomNav(context, vm, brightBlue, isLastSoal),
         ],
       ),
+    ),
     );
   }
 
