@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hive/hive.dart';
 import 'package:provider/provider.dart';
 import 'package:akademix/features/auth/controllers/auth_controller.dart';
 import 'package:akademix/core/constants/app_enums.dart';
@@ -17,6 +19,24 @@ class _LoginViewState extends State<LoginView> {
   final _formKey = GlobalKey<FormState>();
   bool _obscurePassword = true;
   bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedCredentials();
+  }
+
+  void _loadRememberedCredentials() {
+    final settingsBox = Hive.box('settings');
+    final bool rememberMe = settingsBox.get('remember_me', defaultValue: false) as bool;
+    if (rememberMe) {
+      final savedUsername = settingsBox.get('saved_username', defaultValue: '') as String;
+      setState(() {
+        _rememberMe = true;
+        _usernameController.text = savedUsername;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -38,6 +58,16 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
 
     if (success) {
+      // Simpan kredensial jika "Remember me" dicentang
+      final settingsBox = Hive.box('settings');
+      if (_rememberMe) {
+        settingsBox.put('remember_me', true);
+        settingsBox.put('saved_username', _usernameController.text.trim());
+      } else {
+        settingsBox.put('remember_me', false);
+        settingsBox.delete('saved_username');
+      }
+
       final role = authVm.currentUser?.role;
 
       if (role == UserRole.mahasiswa || role == UserRole.dosen) {
@@ -209,7 +239,7 @@ class _LoginViewState extends State<LoginView> {
               ],
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: _showForgotPasswordDialog,
               child: const Text(
                 'Lupa Kata Sandi?',
                 style: TextStyle(fontSize: 13, color: Color(0xFF2962FF)),
@@ -252,6 +282,94 @@ class _LoginViewState extends State<LoginView> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showForgotPasswordDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.black54),
+                onPressed: () => Navigator.pop(dialogContext),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2962FF).withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.lock_reset, size: 28, color: Color(0xFF2962FF)),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Lupa Kata Sandi?",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Untuk melakukan reset kata sandi, silakan hubungi bagian Administrasi Akademik atau Unit IT SISFO Kampus dengan membawa bukti identitas Anda (KTM/Kartu Pegawai).",
+                    style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.5),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Clipboard.setData(const ClipboardData(text: "admin@akademix.ac.id"));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Email Admin berhasil disalin!"),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF2962FF)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          child: const Text(
+                            "Salin Email Admin",
+                            style: TextStyle(
+                              color: Color(0xFF2962FF),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
